@@ -22,6 +22,8 @@ import seatNavigation from "./hooks/seatNavigation";
 import voiceNavigation from './hooks/voiceNavigation';
 import VoiceControl from './components/VoiceControl';
 
+import VideoControl from "./components/VideoControl";
+
 import { MODE } from "./constants/modes";
 
 const MOVIES_BASE_PATH = "/movie-images/"
@@ -152,6 +154,24 @@ const layout1 = [
 
 export default function App() {
 
+  // camera handle
+  const [cameraActive, setCameraActive] = useState(false);
+  const cameraRef = useRef(null);
+  
+  // handsRef
+  const handsRef = useRef(null);
+
+  // press V key to enable/disable camera
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.key.toLowerCase() === 'v') {
+        setCameraActive(active => !active);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
+
   // already occupied seats
   const initialOccupied = ['F3', 'F4', 'H4', 'H5', 'I4'];
   // selected seats from user
@@ -160,7 +180,7 @@ export default function App() {
 
   useEffect(() => { selectedSeatsRef.current = selectedSeats; }, [selectedSeats]);
 
-  // handler for seats
+  // handler for seats with mouse
   const handleSeatSelection = ({ row, col, seat }) => {
     // non consentire selezione se occupato all'origine
     if (initialOccupied.includes(seat)) return;
@@ -264,13 +284,6 @@ const getMaxCol = row =>
   const dayRef = useRef(null)
   const hourRef = useRef(null)
 
-  // speak synthesis
-  const speak = (text) => {
-    const utter = new SpeechSynthesisUtterance(text);
-    utter.lang = 'en-US';
-    window.speechSynthesis.speak(utter);
-  };
-
   const {
     transcript,
     listening,
@@ -278,12 +291,12 @@ const getMaxCol = row =>
     resetTranscript,
     resetVoiceMode,
     browserSupportsSpeechRecognition,
-    voiceLog
+    voiceLog,
+    speak
   } = voiceNavigation({
     modeRef,
     movies,
-    setMovieIndex,
-    speak
+    setMovieIndex    
   });
   
   useEffect(() => { modeRef.current = mode; }, [mode]);
@@ -293,7 +306,8 @@ const getMaxCol = row =>
 
   const [gestureMode, setGestureMode] = useState(false);
 
-    // 1) Creo il ref che conterrà sempre gli handler aggiornati
+  // a handlerRef is used to contain a reference to components functions always updated
+  // this way App.jsx is always synched with the updated values
   const handlersRef = useRef({
     moveMovieUp: () => {},
     moveMovieDown: () => {},
@@ -306,10 +320,13 @@ const getMaxCol = row =>
     moveSeatLeft: () => {},
     moveSeatRight: () => {},
     selectSeat: () => {},
-    deselectSeat: () => {}
+    deselectSeat: () => {},
+    resetVoiceMode: () => {},
+    speak: () => {}
   });
 
-  // 2) Ogni volta che uno di questi handler cambia, aggiorno handlersRef.current
+  // update handlerRef
+  // Every time that a handler changes, we update handlersRef.current
   useEffect(() => {
     handlersRef.current = {
       moveMovieUp,
@@ -323,7 +340,9 @@ const getMaxCol = row =>
       moveSeatLeft,
       moveSeatRight,
       selectSeat,
-      deselectSeat
+      deselectSeat,
+      resetVoiceMode,
+      speak
     };
   }, [
     moveMovieUp,
@@ -337,13 +356,16 @@ const getMaxCol = row =>
     moveSeatLeft,
     moveSeatRight,
     selectSeat,
-    deselectSeat
+    deselectSeat,
+    resetVoiceMode,
+    speak
   ]);
 
+  // handle wheel
   const handleWheel = (e) => {
     //e.preventDefault();
-
-    if(gestureMode) return;
+    
+    if(gestureMode || voiceMode) return;
 
     // Y del cursore nella viewport
     const mouseY = e.clientY;
@@ -359,30 +381,6 @@ const getMaxCol = row =>
     }
   };
 
-  /*
-
-  for dataset creation
-
-  const landmarkNames = [
-    "wrist",
-    "thumb_cmc", "thumb_mcp", "thumb_ip", "thumb_tip",
-    "index_mcp", "index_pip", "index_dip", "index_tip",
-    "middle_mcp", "middle_pip", "middle_dip", "middle_tip",
-    "ring_mcp", "ring_pip", "ring_dip", "ring_tip",
-    "pinky_mcp", "pinky_pip", "pinky_dip", "pinky_tip"
-  ];
-
-  const header = [
-    "label",
-    "handedness",
-    "handedness_score",
-    "palm_nx",  // normale rotazione X
-    "palm_ny",  // normale rotazione Y
-    "palm_nz",  // normale rotazione Z
-    ...landmarkNames.flatMap(name => [`${name}_x`, `${name}_y`, `${name}_z`])
-  ];
-  */
-
   // load model
   useEffect(() => {
     (async () => {
@@ -395,6 +393,7 @@ const getMaxCol = row =>
     })();
   }, []);
 
+  // model classify function
   async function classify(inputArr) {
     return tf.tidy(() => {
       const input = tf.tensor(inputArr, [1, 68]);
@@ -407,59 +406,18 @@ const getMaxCol = row =>
       return { idx, score: maxScore };
     });
   }
-
-  /*
-  // use this to create the dataset with video camera
-  const currentLabel = useRef(null);
-  const collectedRows = useRef([]);
-  const rowRef = useRef(null);
-  useEffect(() => {
-    const onKey = (e) => {
-      switch (e.key.toLowerCase()) {
-        case 'u':
-          currentLabel.current = 'thumbs_up';
-          break;
-        case 'd':
-          currentLabel.current = 'thumbs_down';
-          break;
-        case 'l':
-          currentLabel.current = 'thumb_left';
-          break;
-        case 'r':
-          currentLabel.current = 'thumb_right';
-          break;
-        case 'p':
-          currentLabel.current = 'open_hand';
-          break;
-        case 'f':
-          currentLabel.current = 'fist';
-          break;
-        case 'k':
-          currentLabel.current = 'ok'
-          break;
-        case 'o':
-          currentLabel.current = 'other';
-          break;
-        case 'v':
-          currentLabel.current = 'negation';
-          break;
-        default:
-          currentLabel.current = null;
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, []);
-  */
   
 
-  // here we init mediapipe hands and gesture mode
+  // MEDIA PIPE HANDS
   useEffect(() => {
-    let camera;
-    let hands;
+    
+    if (!cameraActive) return;
+    if (!window.Hands && !window.Camera) return;
+    if (!model) return;
 
-    if (!window.Hands) return;
-    hands = new window.Hands({
+    let active = true;
+
+    const hands = new window.Hands({
       locateFile: (file) =>
         `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
     });
@@ -471,9 +429,11 @@ const getMaxCol = row =>
     });
     hands.onResults(async (results) => {
 
-      if (!model) return;
+      if (!active) return;
 
       const canvas = canvasRef.current;
+      // we must avoid now to have a null reference if user presses V to disable the camera
+      if (!canvas) return;
       const ctx = canvas.getContext("2d");
       ctx.save();
       ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -488,7 +448,7 @@ const getMaxCol = row =>
 
       const score      = results.multiHandedness[0].score;
 
-      // vogliamo uno score >= 0.8 nel rilevamento della mano
+      // we want a score at least >= 0.8 on the handness recognition
       if(score < HANDNESS_SCORE_THRESH) {
         setGestureMode(false);
         return;
@@ -498,7 +458,7 @@ const getMaxCol = row =>
 
       //console.log(currentLabel.current)
 
-      // disegno landmarks
+      // draw landmarks of hand
       window.drawConnectors(ctx, lm, window.HAND_CONNECTIONS, {
         color: "#00FF00",
         lineWidth: 2,
@@ -507,67 +467,6 @@ const getMaxCol = row =>
       ctx.restore();
 
       const now = Date.now()
-
-      /*
-      //console.log(collectedRows.current.length);
-      // use this only for dataset creation
-      if(currentLabel.current && !(collectedRows.current.length > 2999)) { // we'll have 3000 rows for each hand
-        // we flatten the 21 points [x,y,z,...]
-        const flat = normalizeLandmarks(lm) // length 63
-
-        // estrai handedness da MediaPipe
-        let handedness = results.multiHandedness[0].label;   // "Left" or "Right"
-        const score      = results.multiHandedness[0].score;   // 0–1
-
-        if(score >= HANDNESS_SCORE_THRESH) {
-          // we invert handedness result since it's mirrored from camera
-          handedness = handedness === "Left" ? "Right" : "Left";
-
-          const HAND_USED_IN_TRAINING = "Right" // we define which hand we are using for this class
-
-          if(handedness === HAND_USED_IN_TRAINING) {
-
-            // normale al palmo
-            const palmNormal = computePalmNormal(lm); // [nx, ny, nz]
-
-            if(!isHandStable(palmNormal)) {
-              console.log("FRAME NOT STABLE -- NOT SAVED");
-              return;
-            }
-            
-            // landmark normalizzati
-            const normFlat = normalizeLandmarks(lm);  // array length = 63
-
-            // componi la riga, con label, handedness, score, poi i 63 valori
-        
-            // d) componi la riga: label, handedness, score, palmNormal, normFlat
-            const row = [
-              currentLabel.current,
-              handedness,
-              score,
-              ...palmNormal,
-              ...normFlat
-            ];
-
-            console.log(row);
-
-            // 7) Salva la riga in memoria
-            collectedRows.current.push(row);
-            console.log(`Righe raccolte: ${collectedRows.current.length}`);
-          } else {
-            console.log("FAILED TO RECOGNIZE HAND", handedness, HAND_USED_IN_TRAINING)
-          }
-
-        } else {
-          console.log("SCORE BELOW THRESH", score, HANDNESS_SCORE_THRESH);
-        }
-
-      } else {
-        console.log("FINISHED, downloadCSV")
-      }
-
-      // usare il return qui per costruire il dataset
-      return; */
 
       const palmNormal = computePalmNormal(lm); // [nx, ny, nz]
 
@@ -588,8 +487,6 @@ const getMaxCol = row =>
       }
       
       console.log("Predicted Class:", gestureClass);
-
-      
 
       // For every frame we save the current class to a buffer or null. 
       // we need to do this so that only when the buffer has the same gesture K times we can actually do an action
@@ -779,15 +676,15 @@ const getMaxCol = row =>
 
               console.log(row, col);
 
-              // Conferma posti
+              // confirm seats
               if (row === buttonRowRef.current && col === confirmColIndex) {
                 console.log("Seats confirmed", selectedSeatsRef.current);
               }
-              // Torna indietro a TIME MODE
+              // go back to TIME MODE
               else if (row === buttonRowRef.current && col === backColIndex) {
                 resetTimeMode();
               }
-              // Altrimenti selezioniamo/deselezioniamo il posto corrente
+              // otherwise select a seat
               else {
                 handlersRef.current.selectSeat();
               }
@@ -799,6 +696,7 @@ const getMaxCol = row =>
         // OPEN HAND
         if(gestureBuf.current.length === GESTURE_WINDOW
             && gestureBuf.current.every(v => v === LABEL_OPEN_HAND)) {
+              // deselect a selected seat
               handlersRef.current.deselectSeat();
               gestureBufferReset(); 
               return;
@@ -806,50 +704,91 @@ const getMaxCol = row =>
 
       }
 
-      // altrimenti non fare nulla
+      // otherwise don't do anything
       return;
 
       });
+
+  handsRef.current = hands;
     
-    camera = new window.Camera(videoRef.current, {
-      onFrame: async () => { await hands.send({ image: videoRef.current }); },
-      width: 640, height: 480
+  if (videoRef.current) {
+    const camera = new window.Camera(videoRef.current, {
+      onFrame: async () => {
+        if (!active) return;
+        await hands.send({ image: videoRef.current });
+      },
+      width: 640,
+      height: 480,
     });
-    camera.start()
+    camera.start();
+    cameraRef.current = camera;
+  }
 
   return () => {
-    camera.stop();
-    hands.close();
-  };
-  }, [model]);
+      active = false; // we block onFrame / onResults
+      if (cameraRef.current) {
+        cameraRef.current.stop();
+        cameraRef.current = null;
+      }
+      if (handsRef.current) {
+        handsRef.current.close();
+        handsRef.current = null;
+      }
+    };
+  }, [model, cameraActive]);
 
+  const onSelectTime = ({ row, col }) => {
+    console.log('clicked time:', { row, col });
+
+    // non reagire se siamo in modalità gesture o voice
+    if (!gestureMode && !voiceMode) {
+      // aggiorna subito lo stato
+      setTimePos({ row, col });
+
+      const idx = selectedIndexRef.current;
+      const showtimes = movies[idx].showtimes;
+
+      // se siamo sulla riga “back”
+      if (row === showtimes.length) {
+        resetMovieMode();
+        return;
+      }
+
+      // altrimenti aggiorna giorno e ora, poi vai a SEAT
+      setDay(showtimes[row].day);
+      setHour(showtimes[row].times[col]);
+      resetSeatMode();
+    }
+  };
+
+  // SCROLL TO MOVIE FUNCTION
   useEffect(() => {
-    // scroll solo in gestureMode o dopo un comando vocale
+    // we scroll to a movie card only if we are in one of modes: gestureMode or voiceMode
     if (!gestureMode && !voiceMode) return;
 
     const cards = containerRef.current?.querySelectorAll('.movie-card');
     if (!cards || cards.length === 0) return;
 
-    // prendi la card corrispondente a selectedIndex
+    // go to the card that is the current selectedIndex
     const el = cards[selectedIndex];
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
-    // se vuoi che voiceMode duri solo per questo scroll, lo resetti
-    if (voiceMode) resetVoiceMode();
+    // we reset voice mode immediately after
+    if (voiceMode) handlersRef.current.resetVoiceMode();
   }, [selectedIndex, gestureMode, voiceMode]);
 
   // function to extract the 65 length vector needed for the classifier
   function makeInputArr(lm, handedness, score) {
 
-    // normale al palmo
+    // we compute the palm normal (that we also used to build the dataset beforehand)
     const palmNormal = computePalmNormal(lm); // [nx, ny, nz]
     
-    // landmark normalizzati
+    // landmark normalized
     const normFlat = normalizeLandmarks(lm);  // array length = 63
 
-    // 2) handedness: “Left”→0, “Right”→1 quindi se ho left inverto a right dato che ho il mirror
+    // handedness: “Left”→0, “Right”→1 if I get left I invert to right since hands are mirrored
     const handCode = handedness.label === 'Left' ? 1 : 0;
     
     return new Float32Array([ score, ...palmNormal, ...normFlat, handCode ]);
@@ -873,6 +812,14 @@ const getMaxCol = row =>
     setMode(MODE.SEAT);
     setSelectedSeats([]);
     setSeatPos({ row: null, col: null });
+  }
+
+  // function utility for movieSelector when using mouse and clicking a time
+  function onSelectMovieTime(day, time) {
+      setDay(day);
+      setHour(time);
+
+      resetSeatMode();
   }
 
   function getTitle() {
@@ -917,21 +864,28 @@ const getMaxCol = row =>
               gestureMode={gestureMode}
               voiceMode={voiceMode}
               selectedIndex={selectedIndex}
-              onSelect={(idx) => {
+              onSelectMovie={(idx) => {
                 if(!gestureMode && !voiceMode) {
                   setMovieIndex(idx);
                 }
+              }}
+              onSelectTime={(day, time) => {
+                if(!gestureMode && !voiceMode)
+                  onSelectMovieTime(day, time)
               }}
           />
         )} {mode === MODE.TIME && (
            <TimeSelector
               showtimes={movies[selectedIndex].showtimes}
               timePos={timePos}
-              onSelectTime={({ row, col }) => setTimePos({ row, col })}
+              onSelectTime={onSelectTime}
               selectedImage={movies[selectedIndex].image}
               selectedTitle={movies[selectedIndex].title}
               maxCols={maxCols}
               onBack={() => resetMovieMode()}
+              cameraActive={cameraActive}
+              gestureMode = {gestureMode}
+              voiceMode = {voiceMode}
           />
         )} {mode === MODE.SEAT && (
           <SeatSelector
@@ -941,30 +895,20 @@ const getMaxCol = row =>
               focused={seatPos}
               onSelect={handleSeatSelection}
               onBack={() => resetTimeMode()}
-              onConfirm={() => null}
+              onConfirm={() => console.log("Seats confirmed", selectedSeatsRef.current)}
+              gestureMode = {gestureMode}
+              voiceMode = {voiceMode}
+              cameraActive = {cameraActive}
           />
         )}
       </div>
 
-      {/* show camera overlay */}
-      <video
-        ref={videoRef}
-        autoPlay
-        muted
-        playsInline
-        style={{ display: "none" }}
+      {/* show camera overlay only when camera is active */}
+      <VideoControl
+        cameraActive={cameraActive}
+        videoRef={videoRef}
+        canvasRef={canvasRef}
       />
-      <canvas
-        ref={canvasRef}
-        width={640}
-        height={480}
-        className="absolute top-4 right-4 w-80 h-60 border border-gray-300 rounded-lg"
-      />
-      
-
-      {/* Video + Canvas nascosti per MediaPipe */}
-      {/*<video ref={videoRef} className="hidden" />
-      <canvas ref={canvasRef} className="hidden" />*/}
     </div>
   );
 }
