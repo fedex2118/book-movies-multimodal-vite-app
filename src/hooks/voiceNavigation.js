@@ -3,7 +3,6 @@ import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognitio
 
 import { MODE } from "../constants/modes";
 
-// TODO update regex "find moviename"
 const MOVIE_CMD_REGEX = /^(?:search|find|look for|locate|get)\s+(?:me\s+)?(?:(?:a|the)\s+)?(?:movie\s+)?(?:(?:called|named)(?:\s+as)?\s+)?(.+)$/i;
 
 // (potresti definire qui altre regex per time/seat, se vuoi)
@@ -11,7 +10,6 @@ export default function useVoiceNavigation({
     modeRef,
     movies,
     setMovieIndex, // needed for command "search movie"
-    speak
     }) {
     const [voiceMode, setVoiceMode] = useState(false);
 
@@ -42,6 +40,13 @@ export default function useVoiceNavigation({
     },
     // … TODO add timeCommands, seatCommands, gesture fallback, ecc.
     ];
+
+    // speak synthesis
+    const speak = (text) => {
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.lang = 'en-US';
+        window.speechSynthesis.speak(utter);
+    };
 
     // we initialize now speech recognition
     const { transcript, listening, resetTranscript, browserSupportsSpeechRecognition } =
@@ -81,7 +86,8 @@ export default function useVoiceNavigation({
     resetTranscript,
     resetVoiceMode,
     browserSupportsSpeechRecognition,
-    voiceLog
+    voiceLog,
+    speak
     };
   
 }
