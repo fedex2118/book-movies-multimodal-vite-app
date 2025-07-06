@@ -6,16 +6,25 @@ export default function TimeSelector({
   onSelectTime,
   selectedImage,
   maxCols,
-  onBack
+  onBack,
+  cameraActive,
+  gestureMode,
+  voiceMode
 }) {
   const extraRowIndex = showtimes.length; // last index used for "go back" button
 
   return (
     <div className="flex-1 overflow-y-auto p-4">
+      {cameraActive && (
+        <p className="text-center text-gray-700 text-lg md:text-xl mb-3">
+            Move through times using index finger UP/DOWN/RIGHT/LEFT, use "OK" gesture to select a time<br/>
+            When "go back to movies" is selected, use "OK" gesture to go back
+      </p>
+      )}
       <div className="w-full flex justify-center">
         <div className="flex w-full max-w-4xl gap-8 items-start">
           
-          {/* Poster a sinistra */}
+          {/* Poster at left side */}
           <div className="flex-shrink-0 w-1/2 overflow-hidden rounded-lg shadow-lg">
             <img
               src={selectedImage}
@@ -24,10 +33,10 @@ export default function TimeSelector({
             />
           </div>
 
-          {/* Controlli orari a destra */}
+          {/* Times at right side */}
           <div className="flex-1 flex flex-col items-start">
             
-            {/* Griglia giorni + orari */}
+            {/* Day + time grid */}
             <div className="space-y-8 w-full">
               {showtimes.map((show, row) => (
                 <div key={row}>
@@ -36,7 +45,7 @@ export default function TimeSelector({
                     {show.day}:
                   </p>
 
-                  {/* Inline-grid allineato a sinistra */}
+                  {/* Inline-grid alingend to left side */}
                   <div
                     className="inline-grid gap-4 justify-items-start"
                     style={{
@@ -78,7 +87,11 @@ export default function TimeSelector({
                 const isFocusedBack = timePos.row === extraRowIndex && timePos.col === 0;
                 return (
                   <button
-                    onClick={onBack}
+                    onClick={() => {
+                      if(!gestureMode && !voiceMode) {
+                        onBack();
+                      }
+                    }}
                     className={`
                       px-8 py-4 rounded-full text-base font-medium transition border-2 whitespace-nowrap
                       ${isFocusedBack
