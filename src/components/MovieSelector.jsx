@@ -6,6 +6,7 @@ export default function MovieSelector({
   movies,
   selectedIndex,
   gestureMode,
+  voiceMode,
   onSelect,
   onHover
 }) {
@@ -19,7 +20,7 @@ export default function MovieSelector({
             key={index}
             onClick={() => onSelect(index)}
             onMouseEnter={() => {
-                if (isMouseActive) onSelect(index);
+                if (isMouseActive && !gestureMode && !voiceMode) onSelect(index);
             }}
             onWheel={() => onSelect(index)}
             className={`movie-card w-full transition-colors cursor-pointer ${

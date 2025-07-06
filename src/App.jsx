@@ -1,9 +1,6 @@
 // Multimodal movie booking prototype with gesture (MediaPipe Hands) + card expansion
 
 import React, { useEffect, useRef, useCallback, useState } from "react";
-import * as cam from "@mediapipe/camera_utils";
-import { Hands, HAND_CONNECTIONS } from "@mediapipe/hands";
-import { drawConnectors, drawLandmarks } from "@mediapipe/drawing_utils";
 import * as tf from '@tensorflow/tfjs';
 import * as tflite from '@tensorflow/tfjs-tflite';
 import '@tensorflow/tfjs-backend-wasm';
@@ -22,10 +19,15 @@ import movieNavigation from "./hooks/movieNavigation";
 import timeNavigation from "./hooks/timeNavigation";
 import seatNavigation from "./hooks/seatNavigation";
 
+import voiceNavigation from './hooks/voiceNavigation';
+
+import { MODE } from "./constants/modes";
+
+const MOVIES_BASE_PATH = "/movie-images/"
 
 const movies = [
   {
-    title: "BREATHE – FINO ALL’ULTIMO RESPIRO",
+    title: "Lilo & stitch",
     description:
       "Dopo che la Terra è diventata inabitabile a causa della mancanza di ossigeno...",
     director: "Stefon Bristol",
@@ -36,7 +38,7 @@ const movies = [
       { day: "Venerdi 16 Giugno", times: ["17:00", "18:00"] },
       { day: "Sabato 16 Giugno", times: ["12:00", "21:00"] }
     ],
-    image: "https://cdn.18tickets.net/iris/uploads/film/playbill/21722/04a47f7c-5973-4d5d-b290-448bcd0d96ba.jpg"
+    image: `${MOVIES_BASE_PATH}lilo-and-stitch.jpeg`
   },
   {
     title: "ADO SPECIAL LIVE ‘SHINZOU’",
@@ -51,57 +53,57 @@ const movies = [
     image: "https://cdn.18tickets.net/iris/uploads/film/playbill/21722/04a47f7c-5973-4d5d-b290-448bcd0d96ba.jpg"
   },
   {
-    title: "ADO SPECIAL LIVE ‘SHINZOU’",
+    title: "ALBATROSS",
     description: "Uno dei live più importanti della nuova scena musicale giapponese...",
     director: "Toshihito Hirose",
     showtimes: [
       { day: "Lunedì 26 Luglio", times: ["09:00", "11:00"] },
       { day: "Martedi 25 Luglio", times: ["13:00"] }
     ],
-    image: "https://cdn.18tickets.net/iris/uploads/film/playbill/21722/04a47f7c-5973-4d5d-b290-448bcd0d96ba.jpg"
+    image: "https://cdn.18tickets.net/iris/uploads/film/playbill/22020/b08fda41-dc8f-414b-b0a7-b2326e43ccd7.jpg"
   },
   {
-    title: "ADO SPECIAL LIVE ‘SHINZOU’",
+    title: "DRAGON TRAINER",
     description: "Uno dei live più importanti della nuova scena musicale giapponese...",
     director: "Toshihito Hirose",
     showtimes: [
       { day: "Lunedì 15 Giugno", times: ["18:00", "21:00"] },
       { day: "Martedi 16 Giugno", times: ["23:00"] }
     ],
-    image: "https://cdn.18tickets.net/iris/uploads/film/playbill/21722/04a47f7c-5973-4d5d-b290-448bcd0d96ba.jpg"
+    image: "https://cdn.18tickets.net/iris/uploads/film/playbill/21622/09bd7169-cc3d-41b4-8218-e7aab32e502e.jpg"
   },
   {
-    title: "ADO SPECIAL LIVE ‘SHINZOU’",
+    title: "ELIO",
     description: "Uno dei live più importanti della nuova scena musicale giapponese...",
     director: "Toshihito Hirose",
     showtimes: [
       { day: "Lunedì 15 Giugno", times: ["18:00", "21:00", "23:00"] },
       { day: "Martedi 16 Giugno", times: ["23:00"] }
     ],
-    image: "https://cdn.18tickets.net/iris/uploads/film/playbill/21722/04a47f7c-5973-4d5d-b290-448bcd0d96ba.jpg"
+    image: "https://cdn.18tickets.net/iris/uploads/film/playbill/21789/b3ce7481-c6b6-4b26-8920-6e9b6e25bfb6.jpg"
   },
   {
-    title: "ADO SPECIAL LIVE ‘SHINZOU’",
+    title: "F1",
     description: "Uno dei live più importanti della nuova scena musicale giapponese...",
     director: "Toshihito Hirose",
     showtimes: [
       { day: "Lunedì 15 Giugno", times: ["18:00", "21:00"] },
       { day: "Martedi 16 Giugno", times: ["23:00"] }
     ],
-    image: "https://cdn.18tickets.net/iris/uploads/film/playbill/21722/04a47f7c-5973-4d5d-b290-448bcd0d96ba.jpg"
+    image: "https://cdn.18tickets.net/iris/uploads/film/playbill/21796/01ed679b-03ac-44ff-9ba8-a6bf2888508a.jpg"
   },
   {
-    title: "ADO SPECIAL LIVE ‘SHINZOU’",
+    title: "Happy Holidays",
     description: "Uno dei live più importanti della nuova scena musicale giapponese...",
     director: "Toshihito Hirose",
     showtimes: [
       { day: "Lunedì 15 Giugno", times: ["18:00", "21:00"] },
       { day: "Martedi 16 Giugno", times: ["23:00"] }
     ],    
-    image: "https://cdn.18tickets.net/iris/uploads/film/playbill/21722/04a47f7c-5973-4d5d-b290-448bcd0d96ba.jpg"
+    image: "https://cdn.18tickets.net/iris/uploads/film/playbill/22018/a1e32d92-a156-4dde-83d8-97e77c599c02.jpg"
   },
   {
-    title: "ADO SPECIAL LIVE ‘SHINZOU’",
+    title: "Jurassic world: rebirth",
     description: "Uno dei live più importanti della nuova scena musicale giapponese...",
     director: "Toshihito Hirose",
     showtimes: [
@@ -109,7 +111,7 @@ const movies = [
       { day: "Martedi 16 Giugno", times: ["23:00"] },
       { day: "Martedi 16 Giugno", times: ["19:00"] }
     ],
-    image: "https://cdn.18tickets.net/iris/uploads/film/playbill/21722/04a47f7c-5973-4d5d-b290-448bcd0d96ba.jpg"
+    image: "https://cdn.18tickets.net/iris/uploads/film/playbill/21902/6fb1abee-cafd-446a-bbc5-a3c64253e29a.jpg"
   }
 ];
 
@@ -123,14 +125,6 @@ const LABEL_LEFT       = 5;
 const LABEL_RIGHT      = 6;
 const LABEL_DOWN       = 7;
 const LABEL_UP         = 8;
-
-
-// Application modes
-const MODE = {
-  MOVIE: 'movieSelection',
-  TIME:  'timeSelection',
-  SEAT: 'seatSelection'
-};
 
 const layout0 = [
   [null,  'A1', 'A2', 'A3', 'A4', 'A5', 'A6', null],
@@ -268,6 +262,28 @@ const getMaxCol = row =>
 
   const dayRef = useRef(null)
   const hourRef = useRef(null)
+
+  // speak synthesis
+  const speak = (text) => {
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = 'en-US';
+    window.speechSynthesis.speak(utter);
+  };
+
+  const {
+    transcript,
+    listening,
+    voiceMode,
+    resetTranscript,
+    resetVoiceMode,
+    browserSupportsSpeechRecognition,
+    voiceLog
+  } = voiceNavigation({
+    modeRef,
+    movies,
+    setMovieIndex,
+    speak
+  });
   
   useEffect(() => { modeRef.current = mode; }, [mode]);
 
@@ -605,6 +621,7 @@ const getMaxCol = row =>
         // LEFT
         if (gestureBuf.current.length === GESTURE_WINDOW
             && gestureBuf.current.every(v => v === LABEL_LEFT)) {
+              gestureBufferReset();
               lastConfirmedGesture.current = null;
               return;
         }
@@ -612,6 +629,7 @@ const getMaxCol = row =>
         // RIGHT
         if (gestureBuf.current.length === GESTURE_WINDOW
             && gestureBuf.current.every(v => v === LABEL_RIGHT)) {
+              gestureBufferReset();
               lastConfirmedGesture.current = null;
               return;
         }
@@ -619,6 +637,7 @@ const getMaxCol = row =>
         // OTHER
         if (gestureBuf.current.length === GESTURE_WINDOW
             && gestureBuf.current.every(v => v === LABEL_OTHER)) {
+              gestureBufferReset();
               lastConfirmedGesture.current = null;
               return;
         }        
@@ -626,6 +645,7 @@ const getMaxCol = row =>
         // OPEN HAND
         if (gestureBuf.current.length === GESTURE_WINDOW
             && gestureBuf.current.every(v => v === LABEL_OPEN_HAND)) {
+              gestureBufferReset();
               lastConfirmedGesture.current = null;
               return;
         }
@@ -633,6 +653,7 @@ const getMaxCol = row =>
         // FIST
         if (gestureBuf.current.length === GESTURE_WINDOW
             && gestureBuf.current.every(v => v === LABEL_FIST)) {
+              gestureBufferReset();
               lastConfirmedGesture.current = null;
               return;
         }
@@ -640,6 +661,7 @@ const getMaxCol = row =>
         // NEGATION
         if (gestureBuf.current.length === GESTURE_WINDOW
             && gestureBuf.current.every(v => v === LABEL_NEGATION)) {
+              gestureBufferReset();
               lastConfirmedGesture.current = null;
               return;
         }
@@ -800,13 +822,22 @@ const getMaxCol = row =>
   };
   }, [model]);
 
-  useEffect(()=>{
-      if(!gestureMode) return;
-      const el = containerRef.current.querySelector(
-        mode===MODE.MOVIE ? '.bg-blue-50' : '.bg-green-200 border-green-500'
-      );
-      el?.scrollIntoView({ behavior:'smooth', block:'center' });
-  }, [selectedIndex, timePos, mode, gestureMode]);
+  useEffect(() => {
+    // scroll solo in gestureMode o dopo un comando vocale
+    if (!gestureMode && !voiceMode) return;
+
+    const cards = containerRef.current?.querySelectorAll('.movie-card');
+    if (!cards || cards.length === 0) return;
+
+    // prendi la card corrispondente a selectedIndex
+    const el = cards[selectedIndex];
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    // se vuoi che voiceMode duri solo per questo scroll, lo resetti
+    if (voiceMode) resetVoiceMode();
+  }, [selectedIndex, gestureMode, voiceMode]);
 
   // function to extract the 65 length vector needed for the classifier
   function makeInputArr(lm, handedness, score) {
@@ -871,15 +902,44 @@ const getMaxCol = row =>
               Download CSV
             </button>
       */}
+      {/* TODO fare un component */}
+      {/* Microphone status */}
+      {browserSupportsSpeechRecognition && (
+        <div className="text-center mt-4 text-gray-600 text-sm">
+          🎙️ Microphone {listening ? 'On' : 'Off'} — press space bar to talk
+        </div>
+      )}
+
+      {/* Transcripted audio */}
+      {browserSupportsSpeechRecognition && transcript && (
+        <div className="text-center mt-2 text-gray-500 text-sm">
+          <em>{transcript}</em>
+        </div>
+      )}
+
+      {/* Voice logs */}
+      {voiceLog.length > 0 && (
+        <div className="mt-4 text-left text-xs text-gray-600">
+          <h4 className="font-semibold">Log comandi vocali:</h4>
+          <ul className="list-disc list-inside">
+            {voiceLog.map((log, i) => (
+              <li key={i}>{log}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div ref={containerRef} onWheel={handleWheel} className="flex-1 overflow-y-auto">
         {mode === MODE.MOVIE && (
           <MovieSelector
               movies={movies}
               gestureMode={gestureMode}
+              voiceMode={voiceMode}
               selectedIndex={selectedIndex}
               onSelect={(idx) => {
-                setMovieIndex(idx);
+                if(!gestureMode && !voiceMode) {
+                  setMovieIndex(idx);
+                }
               }}
           />
         )} {mode === MODE.TIME && (
