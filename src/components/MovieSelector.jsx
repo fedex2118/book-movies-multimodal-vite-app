@@ -7,8 +7,8 @@ export default function MovieSelector({
   selectedIndex,
   gestureMode,
   voiceMode,
-  onSelect,
-  onHover
+  onSelectMovie,
+  onSelectTime
 }) {
     // mouse moving check constant
     const isMouseActive = useMouseActive(100);
@@ -18,11 +18,11 @@ export default function MovieSelector({
         {movies.map((movie, index) => (
             <div
             key={index}
-            onClick={() => onSelect(index)}
+            onClick={() => onSelectMovie(index)}
             onMouseEnter={() => {
-                if (isMouseActive && !gestureMode && !voiceMode) onSelect(index);
+                if (isMouseActive && !gestureMode && !voiceMode) onSelectMovie(index);
             }}
-            onWheel={() => onSelect(index)}
+            onWheel={() => onSelectMovie(index)}
             className={`movie-card w-full transition-colors cursor-pointer ${
                 gestureMode && index === selectedIndex ? 'bg-blue-50' : ''
             }`}
@@ -59,7 +59,7 @@ export default function MovieSelector({
                             <button
                                 key={ti}
                                 className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm md:text-base rounded-full transition"
-                                onClick={() => alert(`Hai prenotato per ${group.day} alle ${t}`)}
+                                onClick={() => onSelectTime(group.day, t)}
                             >
                                 {t}
                             </button>
