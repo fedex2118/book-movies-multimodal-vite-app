@@ -4,7 +4,7 @@ import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognitio
 import { MODE } from "../constants/modes";
 
 // TODO update regex "find moviename"
-const MOVIE_CMD_REGEX = /^(?:search|find|look for|locate|get)\s+(?:a\s+|the\s+)?movie(?:\s+(?:called|named)(?:\s+as)?)?\s+(.+)$/i;
+const MOVIE_CMD_REGEX = /^(?:search|find|look for|locate|get)\s+(?:me\s+)?(?:(?:a|the)\s+)?(?:movie\s+)?(?:(?:called|named)(?:\s+as)?\s+)?(.+)$/i;
 
 // (potresti definire qui altre regex per time/seat, se vuoi)
 export default function useVoiceNavigation({
@@ -46,18 +46,6 @@ export default function useVoiceNavigation({
     // we initialize now speech recognition
     const { transcript, listening, resetTranscript, browserSupportsSpeechRecognition } =
     useSpeechRecognition({ commands });
-
-    // speech recognition now starts if we are in movie mode
-    // TODO remove this part when introducing voice to time and seat navigation
-    useEffect(() => {
-        if (!browserSupportsSpeechRecognition) return;
-        if (modeRef.current === MODE.MOVIE) {
-            SpeechRecognition.startListening({ continuous: true, language: 'en-US' });
-        } else {
-            SpeechRecognition.stopListening();
-            resetTranscript();
-        }
-    }, [modeRef.current, browserSupportsSpeechRecognition]);
 
     useEffect(() => {
         if (!browserSupportsSpeechRecognition) return;

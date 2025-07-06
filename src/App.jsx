@@ -20,6 +20,7 @@ import timeNavigation from "./hooks/timeNavigation";
 import seatNavigation from "./hooks/seatNavigation";
 
 import voiceNavigation from './hooks/voiceNavigation';
+import VoiceControl from './components/VoiceControl';
 
 import { MODE } from "./constants/modes";
 
@@ -27,7 +28,7 @@ const MOVIES_BASE_PATH = "/movie-images/"
 
 const movies = [
   {
-    title: "Lilo & stitch",
+    title: "Lilo and stitch",
     description:
       "Dopo che la Terra è diventata inabitabile a causa della mancanza di ossigeno...",
     director: "Stefon Bristol",
@@ -902,32 +903,12 @@ const getMaxCol = row =>
               Download CSV
             </button>
       */}
-      {/* TODO fare un component */}
-      {/* Microphone status */}
-      {browserSupportsSpeechRecognition && (
-        <div className="text-center mt-4 text-gray-600 text-sm">
-          🎙️ Microphone {listening ? 'On' : 'Off'} — press space bar to talk
-        </div>
-      )}
-
-      {/* Transcripted audio */}
-      {browserSupportsSpeechRecognition && transcript && (
-        <div className="text-center mt-2 text-gray-500 text-sm">
-          <em>{transcript}</em>
-        </div>
-      )}
-
-      {/* Voice logs */}
-      {voiceLog.length > 0 && (
-        <div className="mt-4 text-left text-xs text-gray-600">
-          <h4 className="font-semibold">Log comandi vocali:</h4>
-          <ul className="list-disc list-inside">
-            {voiceLog.map((log, i) => (
-              <li key={i}>{log}</li>
-            ))}
-          </ul>
-        </div>
-      )}
+      <VoiceControl
+        browserSupportsSpeechRecognition={browserSupportsSpeechRecognition}
+        listening={listening}
+        transcript={transcript}
+        voiceLog={voiceLog}
+      />
 
       <div ref={containerRef} onWheel={handleWheel} className="flex-1 overflow-y-auto">
         {mode === MODE.MOVIE && (
