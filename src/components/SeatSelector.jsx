@@ -7,7 +7,10 @@ export default function SeatSelector({
   focused = { row: null, col: null },
   onSelect,
   onBack,
-  onConfirm
+  onConfirm,
+  gestureMode,
+  voiceMode,
+  cameraActive
 }) {
     const occupiedSet = new Set(occupied);
     const selectedSet = new Set(selected);
@@ -19,16 +22,18 @@ export default function SeatSelector({
     const backColIndex    = 3;
     const confirmColIndex = 4;
 
-    const base = "w-16 h-16 flex items-center justify-center text-sm font-medium rounded-sm transition";
+    const base = "w-16 h-12 flex items-center justify-center text-sm font-medium rounded-sm transition";
 
   return (
     // wrapper per centrare la grid
     <div className="flex flex-col items-center">
-        <p className="text-center text-gray-700 text-lg md:text-xl mb-4">
+        {cameraActive && (
+          <p className="text-center text-gray-700 text-lg md:text-xl mb-3">
             Move through seats using index finger UP/DOWN/RIGHT/LEFT, use "OK" gesture to select a seat<br/>
-            Use "Open hand" gesture to deselect previously selected. Once done use "OK" gesture on confirm button to confirm your choice<br/>
+            Use "Open hand" gesture to deselect previously selected seat. Once done use "OK" gesture on "confirm button" to confirm your choice<br/>
             --------- The screen is here ---------
-        </p>
+          </p>
+        ) }
         <div className="flex justify-center">
         <div
           className="grid gap-2"
@@ -48,11 +53,11 @@ export default function SeatSelector({
               let variant;
               if (isOcc) {
                 variant = 'bg-gray-500 cursor-not-allowed text-gray-200';
-              } else if (isSel && isFoc) {
+              } else if (isSel && isFoc && gestureMode) {
                 variant = 'bg-blue-700 text-white ring-4 ring-yellow-400';
               } else if (isSel) {
                 variant = 'bg-blue-500 text-white';
-              } else if (isFoc) {
+              } else if (isFoc && gestureMode) {
                 variant = 'bg-white text-gray-800 ring-4 ring-yellow-400';
               } else {
                 variant = 'bg-gray-200 hover:bg-gray-300 text-gray-800';
@@ -62,7 +67,12 @@ export default function SeatSelector({
                 <button
                   key={key}
                   disabled={isOcc}
-                  onClick={() => onSelect({ row: r, col: c, seat })}
+                  onClick={() => {
+                    if(!gestureMode && !voiceMode) {
+                     onSelect({ row: r, col: c, seat }) 
+                    }
+                  }
+                  }
                   className={`${base} ${variant}`}
                 >
                   {seat}
@@ -87,7 +97,7 @@ export default function SeatSelector({
                 : 'bg-gray-300 hover:bg-gray-400 text-gray-800'}
             `}
           >
-            Indietro
+            Go Back
           </button>
 
           {/* Bottone Conferma */}
@@ -107,7 +117,7 @@ export default function SeatSelector({
               }
             `}
           >
-            Conferma
+            Confirm
           </button>
 
           {/* celle vuote per il resto */}
