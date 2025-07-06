@@ -29,11 +29,15 @@ export default function SeatSelector({
     <div className="flex flex-col items-center">
         {cameraActive && (
           <p className="text-center text-gray-700 text-lg md:text-xl mb-3">
-            Move through seats using index finger UP/DOWN/RIGHT/LEFT, use "OK" gesture to select a seat<br/>
-            Use "Open hand" gesture to deselect previously selected seat. Once done use "OK" gesture on "confirm button" to confirm your choice<br/>
-            --------- The screen is here ---------
+            Move through seats using index finger <em>UP/DOWN/RIGHT/LEFT</em>, use <em>"OK"</em> gesture to select a seat<br/>
+            Use <em>"Open hand"</em> gesture to deselect previously selected seat. Once done, use <em>"OK"</em> gesture on <em>confirm button</em> to confirm your choice.
           </p>
-        ) }
+        )}
+
+        {/* Riga sempre visibile */}
+        <div className="mt-2 w-80 mb-3 text-center text-500">
+          ----- The screen is here -----
+        </div>
         <div className="flex justify-center">
         <div
           className="grid gap-2"
