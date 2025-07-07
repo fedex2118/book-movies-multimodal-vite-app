@@ -28,14 +28,15 @@ export default function SeatSelector({
     // wrapper per centrare la grid
     <div className="flex flex-col items-center">
         {cameraActive && (
-          <p className="text-center text-gray-700 text-lg md:text-xl mb-3">
-            Move through seats using index finger <em>UP/DOWN/RIGHT/LEFT</em>, use <em>"OK"</em> gesture to select a seat<br/>
-            Use <em>"Open hand"</em> gesture to deselect previously selected seat. Once done, use <em>"OK"</em> gesture on <em>confirm button</em> to confirm your choice.
+          <p className="text-center text-gray-700 text-base md:text-base mb-3">
+            Move through seats using index finger 👆👇👈👉, use 👌 gesture to select a seat<br/>
+            Use 🖐️ gesture to deselect previously selected seat. Once done, use 👌 gesture on <em>Confirm</em> button to confirm your choice or use it on <em>Go back</em> button to go back to time selection.
           </p>
         )}
 
         {/* Riga sempre visibile */}
         <div className="mt-2 w-80 mb-3 text-center text-500">
+
           ----- The screen is here -----
         </div>
         <div className="flex justify-center">

@@ -27,7 +27,7 @@ export default function VideoControl({ cameraActive, videoRef, canvasRef }) {
         ref={canvasRef}
         width={640}
         height={480}
-        className="w-80 h-60 border border-gray-300 rounded-lg bg-transparent"
+        className="w-80 h-60 border border-gray-300 rounded-lg bg-transparent z-20"
       />
 
       {/* Instruction text below canvas */}

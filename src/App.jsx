@@ -855,9 +855,18 @@ const getMaxCol = row =>
         listening={listening}
         transcript={transcript}
         voiceLog={voiceLog}
+        mode={mode}
       />
 
+      {mode === MODE.MOVIE && cameraActive && (
+          <div className="sticky bottom-0 bg-white bg-opacity-75 backdrop-blur-sm p-2 w-full text-center text-base text-gray-700 z-10">
+            Use index finger 👆👇 gestures to move through movies<br/>
+            Use 👌 gesture to choose a movie<br/>
+          </div>
+      )}
+
       <div ref={containerRef} onWheel={handleWheel} className="flex-1 overflow-y-auto">
+        
         {mode === MODE.MOVIE && (
           <MovieSelector
               movies={movies}

@@ -16,9 +16,9 @@ export default function TimeSelector({
   return (
     <div className="flex-1 overflow-y-auto p-4">
       {cameraActive && (
-        <p className="text-center text-gray-700 text-lg md:text-xl mb-3">
-            Move through times using index finger <em>UP/DOWN/RIGHT/LEFT</em>, use <em>"OK"</em> gesture to select a time<br/>
-            When <em>"go back to movies"</em> is selected, use <em>"OK"</em> gesture to go back
+        <p className="text-center text-gray-700 text-lg md:text-base mb-3">
+            Move through times using index finger 👆👇👈👉, use 👌 gesture to select a time<br/>
+            When over <em>"go back to movies"</em>, use 👌 gesture to go back
       </p>
       )}
       <div className="w-full flex justify-center">

@@ -2,6 +2,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
+import { MODE } from '../constants/modes';
+
 /**
  * VoiceControl
  * Displays microphone status, transcript, and voice command logs.
@@ -10,7 +12,8 @@ export default function VoiceControl({
   browserSupportsSpeechRecognition,
   listening,
   transcript,
-  voiceLog
+  voiceLog,
+  mode
 }) {
   if (!browserSupportsSpeechRecognition) {
     return null;
@@ -22,6 +25,22 @@ export default function VoiceControl({
       <div className="text-center relative mt-1 mb-3 text-gray-600 text-lg">
         🎙️ Microphone {listening ? 'On' : 'Off'} — press space bar to talk
       </div>
+
+      {mode === MODE.MOVIE && (
+        <div className="mt-2 mb-4 w-full text-center text-gray-600 text-sm">
+          🎤 Use voice to find/book a movie: "find movie abc", "book movie xyz at time ..."
+        </div>
+      )}
+      {mode === MODE.TIME && (
+        <div className="mt-2 mb-4 w-full text-center text-gray-600 text-sm">
+          🎤 TODO
+        </div>
+      )}
+      {mode === MODE.SEAT && (
+        <div className="mt-2 mb-4 w-full text-center text-gray-600 text-sm">
+          🎤 TODO
+        </div>
+      )}
 
       {/* Transcripted audio */}
       {transcript && (
