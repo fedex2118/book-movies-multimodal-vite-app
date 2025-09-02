@@ -30,91 +30,99 @@ const MOVIES_BASE_PATH = "/movie-images/"
 
 const movies = [
   {
-    title: "Lilo and stitch",
+    title: "Lilo & Stitch",
+    altTitles: ["Lilo and Stitch", "Lilo Stitch"],
     description:
       "Dopo che la Terra è diventata inabitabile a causa della mancanza di ossigeno...",
     director: "Stefon Bristol",
     showtimes: [
-      { day: "Lunedì 15 Giugno", times: ["18:00", "21:00"] },
-      { day: "Martedi 16 Giugno", times: ["23:00"] },
-      { day: "Giovedi 16 Giugno", times: ["18:00", "19:00", "21:00"] },
-      { day: "Venerdi 16 Giugno", times: ["17:00", "18:00"] },
-      { day: "Sabato 16 Giugno", times: ["12:00", "21:00"] }
+      { day: "Monday 15th June", times: ["18:00", "21:00"] },
+      { day: "Tuesday 16th June", times: ["23:00"] },
+      { day: "Thursday 18th June", times: ["18:00", "19:00", "21:00"] },
+      { day: "Friday 19th June", times: ["17:00", "18:00"] },
+      { day: "Saturday 20th June", times: ["12:00", "21:00"] }
     ],
     image: `${MOVIES_BASE_PATH}lilo-and-stitch.jpeg`
   },
   {
     title: "ADO SPECIAL LIVE ‘SHINZOU’",
+    altTitles: ["ADO LIVE", "SHINZOU", "SHINSOU", "ADDO"],
     description: "Uno dei live più importanti della nuova scena musicale giapponese...",
     director: "Toshihito Hirose",
     showtimes: [
-      { day: "Lunedì 15 Giugno", times: ["18:00", "21:00"] },
-      { day: "Martedi 16 Giugno", times: ["23:00"] },
-      { day: "Martedi 16 Giugno", times: ["18:00", "19:00", "21:00"] },
-      { day: "Martedi 16 Giugno", times: ["17:00", "18:00"] }
+      { day: "Monday 15 June", times: ["18:00", "21:00"] },
+      { day: "Tuesday 16th June", times: ["23:00"] },
+      { day: "Thursday 18th June", times: ["18:00", "19:00", "21:00"] },
+      { day: "Friday 19th June", times: ["17:00", "18:00"] }
     ],
-    image: "https://cdn.18tickets.net/iris/uploads/film/playbill/21722/04a47f7c-5973-4d5d-b290-448bcd0d96ba.jpg"
+    image: `${MOVIES_BASE_PATH}ado-special-live.jpg`
   },
   {
     title: "ALBATROSS",
+    altTitles: [],
     description: "Uno dei live più importanti della nuova scena musicale giapponese...",
     director: "Toshihito Hirose",
     showtimes: [
-      { day: "Lunedì 26 Luglio", times: ["09:00", "11:00"] },
-      { day: "Martedi 25 Luglio", times: ["13:00"] }
+      { day: "Monday 25 Luglio", times: ["09:00", "11:00"] },
+      { day: "Tuesday 26 Luglio", times: ["13:00"] }
     ],
-    image: "https://cdn.18tickets.net/iris/uploads/film/playbill/22020/b08fda41-dc8f-414b-b0a7-b2326e43ccd7.jpg"
+    image: `${MOVIES_BASE_PATH}albatross.jpg`
   },
   {
     title: "DRAGON TRAINER",
+    altTitles: [],
     description: "Uno dei live più importanti della nuova scena musicale giapponese...",
     director: "Toshihito Hirose",
     showtimes: [
-      { day: "Lunedì 15 Giugno", times: ["18:00", "21:00"] },
-      { day: "Martedi 16 Giugno", times: ["23:00"] }
+      { day: "Monday 15 June", times: ["18:00", "21:00"] },
+      { day: "Tuesday 16 June", times: ["23:00"] }
     ],
-    image: "https://cdn.18tickets.net/iris/uploads/film/playbill/21622/09bd7169-cc3d-41b4-8218-e7aab32e502e.jpg"
+    image: `${MOVIES_BASE_PATH}dragon-trainer.jpg`
   },
   {
     title: "ELIO",
+    altTitles: [],
     description: "Uno dei live più importanti della nuova scena musicale giapponese...",
     director: "Toshihito Hirose",
     showtimes: [
-      { day: "Lunedì 15 Giugno", times: ["18:00", "21:00", "23:00"] },
-      { day: "Martedi 16 Giugno", times: ["23:00"] }
+      { day: "Monday 15 June", times: ["18:00", "21:00", "23:00"] },
+      { day: "Tuesday 16 June", times: ["23:00"] }
     ],
-    image: "https://cdn.18tickets.net/iris/uploads/film/playbill/21789/b3ce7481-c6b6-4b26-8920-6e9b6e25bfb6.jpg"
+    image: `${MOVIES_BASE_PATH}elio.jpg`
   },
   {
     title: "F1",
+    altTitles: [],
     description: "Uno dei live più importanti della nuova scena musicale giapponese...",
     director: "Toshihito Hirose",
     showtimes: [
-      { day: "Lunedì 15 Giugno", times: ["18:00", "21:00"] },
-      { day: "Martedi 16 Giugno", times: ["23:00"] }
+      { day: "Monday 15 June", times: ["18:00", "21:00"] },
+      { day: "Tuesday 16 June", times: ["23:00"] }
     ],
-    image: "https://cdn.18tickets.net/iris/uploads/film/playbill/21796/01ed679b-03ac-44ff-9ba8-a6bf2888508a.jpg"
+    image: `${MOVIES_BASE_PATH}f1.jpg`
   },
   {
     title: "Happy Holidays",
+    altTitles: [],
     description: "Uno dei live più importanti della nuova scena musicale giapponese...",
     director: "Toshihito Hirose",
     showtimes: [
-      { day: "Lunedì 15 Giugno", times: ["18:00", "21:00"] },
-      { day: "Martedi 16 Giugno", times: ["23:00"] }
+      { day: "Monday 15 June", times: ["18:00", "21:00"] },
+      { day: "Tuesday 16 June", times: ["23:00"] }
     ],    
-    image: "https://cdn.18tickets.net/iris/uploads/film/playbill/22018/a1e32d92-a156-4dde-83d8-97e77c599c02.jpg"
+    image: `${MOVIES_BASE_PATH}happy-holidays.jpg`
   },
   {
     title: "Jurassic world: rebirth",
+    altTitles: ["Jurassic rebirth"], 
     description: "Uno dei live più importanti della nuova scena musicale giapponese...",
     director: "Toshihito Hirose",
     showtimes: [
-      { day: "Lunedì 15 Giugno", times: ["18:00", "21:00"] },
-      { day: "Martedi 16 Giugno", times: ["23:00"] },
-      { day: "Martedi 16 Giugno", times: ["19:00"] }
+      { day: "Monday 15 June", times: ["18:00", "21:00"] },
+      { day: "Tuesday 16 June", times: ["23:00"] },
+      { day: "Mercoledi 17 June", times: ["19:00"] }
     ],
-    image: "https://cdn.18tickets.net/iris/uploads/film/playbill/21902/6fb1abee-cafd-446a-bbc5-a3c64253e29a.jpg"
+    image: `${MOVIES_BASE_PATH}jurassic-world-rebirth.jpg`
   }
 ];
 
@@ -296,7 +304,12 @@ const getMaxCol = row =>
   } = voiceNavigation({
     modeRef,
     movies,
-    setMovieIndex    
+    setMovieIndex,
+    setDay,
+    setHour,
+    resetSeatMode,
+    setMode,
+    setTimePos
   });
   
   useEffect(() => { modeRef.current = mode; }, [mode]);
@@ -486,7 +499,7 @@ const getMaxCol = row =>
         return;
       }
       
-      console.log("Predicted Class:", gestureClass);
+      //console.log("Predicted Class:", gestureClass);
 
       // For every frame we save the current class to a buffer or null. 
       // we need to do this so that only when the buffer has the same gesture K times we can actually do an action
