@@ -309,7 +309,9 @@ const getMaxCol = row =>
     setHour,
     resetSeatMode,
     setMode,
-    setTimePos
+    setTimePos,
+    resetMovieMode,
+    currentMovieIndex: selectedIndex
   });
   
   useEffect(() => { modeRef.current = mode; }, [mode]);

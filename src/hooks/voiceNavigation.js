@@ -6,6 +6,7 @@ import { MODE } from "../constants/modes";
 // regex patterns for voice mode
 const MOVIE_CMD_REGEX = /^(?:search|find|look for|locate|get)\s+(?:me\s+)?(?:(?:a|the)\s+)?(?:movie\s+)?(?:(?:called|named)(?:\s+as)?\s+)?(.+)$/i;
 
+// REGEX MODE MOVIE
 // groups: 1=movie, 2=time, 3=day (optional)
 export const MOVIE_AT_TIME_OPTIONAL_DAY =
 /^(?:choose|select|pick|set|book|reserve)\s+(?:a|the\s+)?(?:movie\s+)?(.+?)\s+(?:after|at\s+(?:time\s+)?)((?:[01]?\d|2[0-3])[:.][0-5]\d|(?:[01]?\d|2[0-3])(?:\s*h)?|(?:0?\d|1[0-2])(?::[0-5]\d)?\s*(?:a\.?m\.?|p\.?m\.?))(?:\s+on\s+(.+))?$/i
@@ -22,6 +23,20 @@ const TIME_FIRST_CMD =
 const BOOK_NO_TIME_CMD =
 /^(?:book|reserve|schedule|set|choose|select)\s+(?:a|the\s+)?(?:movie\s+)?(.+?)(?:\s+on\s+(.+))?$/i;
 
+// REGEX MODE TIME
+// groups: 1=time, 2=day (optional)
+const TIME_ONLY_CMD =
+/^(?:show|choose|select|pick|set|book|reserve)\s+(?:(?:a|the|at)\s+)?(?:time\s+)?((?:[01]?\d|2[0-3])[:.][0-5]\d|(?:[01]?\d|2[0-3])(?:\s*h)?|(?:0?\d|1[0-2])(?::(?:[0-5]\d))?\s*(?:a\.?m\.?|p\.?m\.?)?)(?:\s+on\s+(.+))?$/i;
+
+// (es. "choose 21th June at 9pm")
+// groups: 1=day, 2=time
+const DAY_AT_TIME_NO_MOVIE =
+/^(?:show|choose|select|pick|set|book|reserve)\s+(.+?)\s*(?:\s+(?:a|the|at|after))?\s*((?:[01]?\d|2[0-3])[:.][0-5]\d|(?:[01]?\d|2[0-3])(?:\s*h)?|(?:0?\d|1[0-2])(?::[0-5]\d)?\s*(?:a\.?m\.?|p\.?m\.?))$/i;
+
+// REGEX GO BACK
+// BACK command
+const GO_BACK_CMD = /^(?:back|go back|previous|cancel|exit)$/i;
+
 export default function useVoiceNavigation({
     modeRef,
     movies,
@@ -30,9 +45,19 @@ export default function useVoiceNavigation({
     setHour,
     resetSeatMode,
     setMode,
-    setTimePos
+    setTimePos,
+    resetMovieMode,
+    currentMovieIndex
     }) {
     const [voiceMode, setVoiceMode] = useState(false);
+    // indexCurrentMovie
+    const movieIdxRef = useRef(
+        Number.isInteger(currentMovieIndex) ? currentMovieIndex : -1
+    );
+    useEffect(() => {
+    movieIdxRef.current =
+        Number.isInteger(currentMovieIndex) ? currentMovieIndex : -1;
+    }, [currentMovieIndex]);
 
     // voice log
     const [voiceLog, setVoiceLog] = useState([]);
@@ -49,7 +74,8 @@ export default function useVoiceNavigation({
         .trim();
 
     // voice commands
-    const commands = [
+    // COMMANDS FOR MODE.MOVIE
+    const movieModeCommands = [
     {
         // TIME first: "select 9 pm on monday for movie ..."
         command: TIME_FIRST_CMD,
@@ -127,8 +153,77 @@ export default function useVoiceNavigation({
         logResult(`Book "${movieSpoken}" ${daySpoken ? `on "${daySpoken}" ` : ''}→ ▶ time selection`);
         resetTranscript();
         })
-    }
+    },
+    
     ];
+
+    // COMMANDS FOR MODE.TIME
+    const timeModeCommands = [
+    {
+        // BACK in time selection
+        command: GO_BACK_CMD,
+        matchInterim: false,
+        callback: () => runOnce(() => {
+            if (modeRef.current !== MODE.TIME) return;
+                resetMovieMode();
+                speak('Going back to movie selection.');
+                logResult('↩ back → ▶ movie selection');
+                resetTranscript();
+        })
+    },
+    {
+        // TIME-ONLY (optional day) in MODE.TIME
+        command: TIME_ONLY_CMD,
+        matchInterim: false,
+        callback: (timeSpoken, daySpoken) => runOnce(() => {
+            if (modeRef.current !== MODE.TIME) return;
+            const idx = movieIdxRef.current
+            console.log("TIME_ONLY_CMD", idx)
+            if (idx === -1) { 
+                speak('No movie selected yet.'); 
+                logResult('Time-only → ❌ no movie selected'); 
+                resetTranscript(); 
+            return; 
+            }
+        const time24 = normalizeTimeTo24h(timeSpoken);
+        const dayClean = daySpoken ? sanitizeDayHeard(daySpoken) : null;
+        handleTimeToSeat({ idx, time: time24, daySpoken: dayClean });
+        })
+    },
+    {
+        // DAY then TIME (no movie)
+        command: DAY_AT_TIME_NO_MOVIE,
+        matchInterim: false,
+        callback: (daySpoken, timeSpoken) => runOnce(() => {
+            if (modeRef.current !== MODE.TIME) return;
+            const idx = movieIdxRef.current
+            console.log("DAY_AT_TIME_NO_MOVIE", idx)
+            if (idx === -1) { 
+                speak('No movie selected yet.'); 
+                logResult('Day+time → ❌ no movie selected'); 
+                resetTranscript(); 
+            return; 
+            }
+            const time24 = normalizeTimeTo24h(timeSpoken);
+            const dayClean = daySpoken ? sanitizeDayHeard(daySpoken) : null;
+            handleTimeToSeat({ idx, time: time24, daySpoken: dayClean });
+        })
+    }
+    ]
+
+    // COMMANDS FOR MODE.SEAT
+    const seatModeCommands = [];
+
+    var currentCommands = []
+    if(modeRef.current === MODE.MOVIE) {
+        currentCommands = movieModeCommands;
+    } else if(modeRef.current === MODE.TIME) {
+        currentCommands = timeModeCommands;
+    } else if(modeRef.current === MODE.SEAT) {
+        currentCommands = seatModeCommands;
+    }
+
+    const commands = currentCommands;
 
     // speak synthesis
     const speak = (text) => {
@@ -136,7 +231,6 @@ export default function useVoiceNavigation({
         utter.lang = 'en-US';
         window.speechSynthesis.speak(utter);
     };
-
     // we initialize now speech recognition
     const { transcript, listening, resetTranscript, browserSupportsSpeechRecognition } =
     useSpeechRecognition({ commands });
@@ -241,24 +335,23 @@ export default function useVoiceNavigation({
         setMovieIndex(idx);
 
         const shows = movies[idx].showtimes || [];
-        const dayNorm = daySpoken ? norm(daySpoken) : null;
 
-        // if day has been told try to match day + time
-        if (dayNorm) {
+        // if day has been told try to match day + time (with flexible comparison)
+        if (daySpoken) {
+            const dayHeard = sanitizeDayHeard(daySpoken); // << NEW
             let row = -1;
             for (let r = 0; r < shows.length; r++) {
-            const dayStr = norm(shows[r].day || "");
-            if (dayStr.includes(dayNorm) && (shows[r].times || []).includes(time)) {
+                const dayStr = shows[r].day || "";
+                if (dayMatchesNormalizedDay(dayStr, dayHeard) && (shows[r].times || []).includes(time)) {
                 row = r; break;
-            }
+                }
             }
             if (row === -1) {
-                speak(`Time ${time} not available on ${daySpoken} for ${movies[idx].title}`);
-                logResult(`Time "${time}" on "${daySpoken}" for "${movies[idx].title}" → ❌ not available`);
+                speak(`Time ${time} not available on ${dayHeard} for ${movies[idx].title}`);
+                logResult(`Time "${time}" on "${dayHeard}" for "${movies[idx].title}" → ❌ not available`);
                 resetTranscript();
                 return;
             }
-            // day specified valid -> go to seat selection
             setDay(shows[row].day);
             setHour(time);
             resetSeatMode();
@@ -298,6 +391,40 @@ export default function useVoiceNavigation({
         speak(`Selected ${time} on ${shows[onlyRow].day} for ${movies[idx].title}`);
         logResult(`Time "${time}" on "${shows[onlyRow].day}" for "${movies[idx].title}" → ✅ seat mode`);
         resetTranscript();
+    }
+
+    // removes spurious items/words that the STT sometimes inserts before the date
+    function sanitizeDayHeard(s = "") {
+        return String(s)
+            .replace(/^\s*(?:us\s+)?(?:a|the)\s+/i, "") // "us a 16th June" -> "16th June" | "the 15 June" -> "15 June"
+            .trim();
+    }
+
+    // normalizes text of day (15th -> 15, "of" is removed, month abbreviation, removes spaces and punctuations)
+    function normalizeDayText(s = "") {
+        let t = norm(s)
+            .replace(/\b(\d{1,2})(st|nd|rd|th)\b/gi, "$1") // 15th -> 15
+            .replace(/\bof\b/g, "")                        // "15 of june" -> "15 june"
+            .replace(/\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday|lunedi|lunedì|martedi|martedì|mercoledi|mercoledì|giovedi|giovedì|venerdi|venerdì|sabato|domenica)\b/gi, "")
+            .replace(/[,]/g, " ")
+            .replace(/\s+/g, " ")
+            .trim();
+
+        const monthMap = {
+            jan: "january", feb: "february", mar: "march", apr: "april",
+            may: "may", jun: "june", jul: "july", aug: "august",
+            sep: "september", sept: "september",
+            oct: "october", nov: "november", dec: "december"
+        };
+        t = t.replace(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)\b/gi, m => monthMap[m.toLowerCase()]);
+        return t;
+    }
+
+    // flexible comparison: A contains B or B contains A after normalization
+    function dayMatchesNormalizedDay(a, b) {
+        const A = normalizeDayText(a);
+        const B = normalizeDayText(b);
+        return A.includes(B) || B.includes(A);
     }
 
     // this function is used to avoid the possibility (bug) of multiple commands at once
