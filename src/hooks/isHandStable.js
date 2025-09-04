@@ -54,8 +54,6 @@ for (const v of history) {
     }
 }
 
-//console.log('maxDev =', maxDev.toFixed(4));
-
 // 5) Se è sotto la soglia, è stabile
 return maxDev < MAX_DEV_EPS;
 }

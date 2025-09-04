@@ -178,7 +178,6 @@ export default function useVoiceNavigation({
         callback: (timeSpoken, daySpoken) => runOnce(() => {
             if (modeRef.current !== MODE.TIME) return;
             const idx = movieIdxRef.current
-            console.log("TIME_ONLY_CMD", idx)
             if (idx === -1) { 
                 speak('No movie selected yet.'); 
                 logResult('Time-only → ❌ no movie selected'); 
@@ -197,7 +196,6 @@ export default function useVoiceNavigation({
         callback: (daySpoken, timeSpoken) => runOnce(() => {
             if (modeRef.current !== MODE.TIME) return;
             const idx = movieIdxRef.current
-            console.log("DAY_AT_TIME_NO_MOVIE", idx)
             if (idx === -1) { 
                 speak('No movie selected yet.'); 
                 logResult('Day+time → ❌ no movie selected'); 
