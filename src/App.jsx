@@ -10,6 +10,8 @@ import downloadCSV from "./hooks/downloadCSV";
 import MovieSelector from './components/MovieSelector';
 import TimeSelector from './components/TimeSelector';
 import SeatSelector from './components/SeatSelector';
+import BookingSummary from "./components/BookingSummary";
+import BlockingModal from "./components/BlockingModal";
 
 import isHandStable from '../src/hooks/isHandStable';
 import computePalmNormal from "./hooks/computePalmNormal";
@@ -18,6 +20,7 @@ import normalizeLandmarks from "./hooks/normalizeLandmarks";
 import movieNavigation from "./hooks/movieNavigation";
 import timeNavigation from "./hooks/timeNavigation";
 import seatNavigation from "./hooks/seatNavigation";
+import bookingSummaryNavigation from "./hooks/bookingSummaryNavigation";
 
 import voiceNavigation from './hooks/voiceNavigation';
 import VoiceControl from './components/VoiceControl';
@@ -27,6 +30,8 @@ import VideoControl from "./components/VideoControl";
 import { MODE } from "./constants/modes";
 
 const MOVIES_BASE_PATH = "/movie-images/"
+
+const currency = "€";
 
 const movies = [
   {
@@ -120,7 +125,7 @@ const movies = [
     showtimes: [
       { day: "Monday 15 June", times: ["18:00", "21:00"] },
       { day: "Tuesday 16 June", times: ["23:00"] },
-      { day: "Mercoledi 17 June", times: ["19:00"] }
+      { day: "Wednesday 17 June", times: ["19:00"] }
     ],
     image: `${MOVIES_BASE_PATH}jurassic-world-rebirth.jpg`
   }
@@ -180,6 +185,13 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
 
+  // day / hour
+  const [day, setDay] = useState(null);
+  const [hour, setHour] = useState(null);
+
+  const dayRef = useRef(null)
+  const hourRef = useRef(null)
+
   // already occupied seats
   const initialOccupied = ['F3', 'F4', 'H4', 'H5', 'I4'];
   // selected seats from user
@@ -187,6 +199,37 @@ export default function App() {
   const selectedSeatsRef = useRef(selectedSeats);
 
   useEffect(() => { selectedSeatsRef.current = selectedSeats; }, [selectedSeats]);
+
+  // selected cinema hall
+  const [selectedCinemaHall, setSelectedCinemaHall] = useState(null);
+  const selectedCinemaHallRef = useRef(selectedCinemaHall);
+
+  useEffect(() => { selectedCinemaHallRef.current = selectedCinemaHall; }, [selectedCinemaHall]);
+
+  // total price
+  const [totalPrice, setTotalPrice] = useState(null);
+  const totalPriceRef = useRef(0);
+
+  useEffect(() => { totalPriceRef.current = totalPrice; }, [totalPrice]);
+
+  const handleTotalPriceChange = useCallback((p) => {
+    totalPriceRef.current = p;
+    setTotalPrice(p);
+  }, []);
+
+  const toBookingSummary = useCallback((p) => {
+    // tieni ref e state allineati
+    totalPriceRef.current = p;
+    setTotalPrice(p);
+    setMode(MODE.BOOKING_SUMMARY);
+    setBookingSummarySelectedIndex(-1);
+    //bookingSummarySelectedIndexRef.current = -1;
+  }, []);
+
+  const handleConfirmFromSeats = useCallback((p) => {
+    toBookingSummary(p);
+  }, [toBookingSummary]);
+
 
   // handler for seats with mouse
   const handleSeatSelection = ({ row, col, seat }) => {
@@ -199,6 +242,19 @@ export default function App() {
         : [...prev, seat]
     );
   };
+
+  // handle end demo modal
+  const [demoEndModal, setDemoEndModal] = useState(false);
+
+  const handleBookingSummaryConfirm = useCallback(() => {
+    setDemoEndModal(true);       // mostra popup bloccante
+  }, []);
+
+  // endDemo modal closure
+  const handleEndModalClose = useCallback(() => {
+    setDemoEndModal(false);
+    resetMovieMode();
+  }, []);
 
   const lastConfirmedGesture = useRef(null);
   
@@ -281,16 +337,23 @@ const getMaxCol = row =>
     setTimePos({ row: null, col: null });
   }, [selectedIndex, setTimePos]);
 
+  const { 
+    bookingSummarySelectedIndex,
+    bookingSummarySelectedIndexRef,
+    moveBookingSummaryLeft,
+    moveBookingSummaryRight,
+    moveBookingSummaryUp,
+    moveBookingSummaryDown,
+    setBookingSummarySelectedIndex }
+     = bookingSummaryNavigation({
+    length: 2, // only two buttons "confirm" and "go back"
+    lastActionRef
+  });
+
   const HANDNESS_SCORE_THRESH = 0.8
 
   const GESTURE_WINDOW = 5;
   const gestureBuf = useRef([]);   // ci metti dentro solo LABEL_UP o LABEL_DOWN (o null)
-
-  const [day, setDay] = useState(null);
-  const [hour, setHour] = useState(null);
-
-  const dayRef = useRef(null)
-  const hourRef = useRef(null)
 
   const {
     transcript,
@@ -316,8 +379,8 @@ const getMaxCol = row =>
   
   useEffect(() => { modeRef.current = mode; }, [mode]);
 
-  useEffect(() => {dayRef.current = day;}, [day])
-  useEffect(() => {hourRef.current = hour;}, [hour])
+  // useEffect(() => {dayRef.current = day;}, [day])
+  // useEffect(() => {hourRef.current = hour;}, [hour])
 
   const [gestureMode, setGestureMode] = useState(false);
 
@@ -337,7 +400,11 @@ const getMaxCol = row =>
     selectSeat: () => {},
     deselectSeat: () => {},
     resetVoiceMode: () => {},
-    speak: () => {}
+    speak: () => {},
+    moveBookingSummaryLeft: () => {},
+    moveBookingSummaryRight: () => {},
+    moveBookingSummaryUp: () => {},
+    moveBookingSummaryDown: () => {}
   });
 
   // update handlerRef
@@ -357,7 +424,11 @@ const getMaxCol = row =>
       selectSeat,
       deselectSeat,
       resetVoiceMode,
-      speak
+      speak,
+      moveBookingSummaryLeft,
+      moveBookingSummaryRight,
+      moveBookingSummaryUp,
+      moveBookingSummaryDown
     };
   }, [
     moveMovieUp,
@@ -373,7 +444,11 @@ const getMaxCol = row =>
     selectSeat,
     deselectSeat,
     resetVoiceMode,
-    speak
+    speak,
+    moveBookingSummaryLeft,
+    moveBookingSummaryRight,
+    moveBookingSummaryUp,
+    moveBookingSummaryDown
   ]);
 
   // handle wheel
@@ -426,9 +501,18 @@ const getMaxCol = row =>
   // MEDIA PIPE HANDS
   useEffect(() => {
     
-    if (!cameraActive) return;
-    if (!window.Hands && !window.Camera) return;
-    if (!model) return;
+    if (!cameraActive) {
+      setGestureMode(false);
+      return;
+    }
+    if (!window.Hands && !window.Camera) {
+      setGestureMode(false);
+      return;
+    }
+    if (!model) {
+      setGestureMode(false);
+      return;
+    }
 
     let active = true;
 
@@ -596,31 +680,35 @@ const getMaxCol = row =>
         // RIGHT
         if (gestureBuf.current.length === GESTURE_WINDOW
             && gestureBuf.current.every(v => v === LABEL_RIGHT)) {
-          handlersRef.current.moveTimeRight()
-          gestureBufferReset(); 
-          return;
+              lastConfirmedGesture.current = null;
+              handlersRef.current.moveTimeRight()
+              gestureBufferReset(); 
+              return;
         }
         // UP
         if (gestureBuf.current.length === GESTURE_WINDOW
             && gestureBuf.current.every(v => v === LABEL_UP)) {
-          handlersRef.current.moveTimeUp()
-          gestureBufferReset(); 
-          return;
+              lastConfirmedGesture.current = null;
+              handlersRef.current.moveTimeUp()
+              gestureBufferReset(); 
+              return;
         }
         // DOWN
         if (gestureBuf.current.length === GESTURE_WINDOW
             && gestureBuf.current.every(v => v === LABEL_DOWN)) {
-          handlersRef.current.moveTimeDown()
-          gestureBufferReset(); 
-          return;
+              lastConfirmedGesture.current = null;
+              handlersRef.current.moveTimeDown()
+              gestureBufferReset(); 
+              return;
         }
 
         // LEFT
         if (gestureBuf.current.length === GESTURE_WINDOW
             && gestureBuf.current.every(v => v === LABEL_LEFT)) {
-          handlersRef.current.moveTimeLeft()
-          gestureBufferReset(); 
-          return;
+              lastConfirmedGesture.current = null;
+              handlersRef.current.moveTimeLeft()
+              gestureBufferReset(); 
+              return;
         }
         // OK
         if (gestureBuf.current.length === GESTURE_WINDOW
@@ -656,6 +744,7 @@ const getMaxCol = row =>
         // RIGHT
         if (gestureBuf.current.length === GESTURE_WINDOW
             && gestureBuf.current.every(v => v === LABEL_RIGHT)) {
+              lastConfirmedGesture.current = null;
               handlersRef.current.moveSeatRight();
               gestureBufferReset(); 
               return;
@@ -663,6 +752,7 @@ const getMaxCol = row =>
         // UP
         if (gestureBuf.current.length === GESTURE_WINDOW
             && gestureBuf.current.every(v => v === LABEL_UP)) {
+              lastConfirmedGesture.current = null;
               handlersRef.current.moveSeatUp();
               gestureBufferReset(); 
               return;
@@ -670,6 +760,7 @@ const getMaxCol = row =>
         // DOWN
         if (gestureBuf.current.length === GESTURE_WINDOW
             && gestureBuf.current.every(v => v === LABEL_DOWN)) {
+              lastConfirmedGesture.current = null;
               handlersRef.current.moveSeatDown();
               gestureBufferReset(); 
               return;
@@ -678,6 +769,7 @@ const getMaxCol = row =>
         // LEFT
         if (gestureBuf.current.length === GESTURE_WINDOW
             && gestureBuf.current.every(v => v === LABEL_LEFT)) {
+              lastConfirmedGesture.current = null;
               handlersRef.current.moveSeatLeft();
               gestureBufferReset(); 
               return;
@@ -688,12 +780,13 @@ const getMaxCol = row =>
             && gestureBuf.current.every(v => v === LABEL_OK)) {
 
               const { row, col } = seatPosRef.current;
-
-              console.log(row, col);
+              lastConfirmedGesture.current = LABEL_OK;
 
               // confirm seats
               if (row === buttonRowRef.current && col === confirmColIndex) {
-                console.log("Seats confirmed", selectedSeatsRef.current);
+                //console.log("Seats confirmed", selectedSeatsRef.current);
+                // go to BOOKING SUMMARY MODE
+                toBookingSummary(totalPriceRef.current);
               }
               // go back to TIME MODE
               else if (row === buttonRowRef.current && col === backColIndex) {
@@ -712,12 +805,76 @@ const getMaxCol = row =>
         if(gestureBuf.current.length === GESTURE_WINDOW
             && gestureBuf.current.every(v => v === LABEL_OPEN_HAND)) {
               // deselect a selected seat
+              lastConfirmedGesture.current = null;
               handlersRef.current.deselectSeat();
               gestureBufferReset(); 
               return;
             }
+      
+      // BOOKING SUMMARY MODE
+      } else if(modeRef.current === MODE.BOOKING_SUMMARY) {
+        // RIGHT
+        if (gestureBuf.current.length === GESTURE_WINDOW
+            && gestureBuf.current.every(v => v === LABEL_RIGHT)) {
+              lastConfirmedGesture.current = null;
+              handlersRef.current.moveBookingSummaryRight();
+              gestureBufferReset(); 
+              return;
+        }
 
+        // LEFT
+        if (gestureBuf.current.length === GESTURE_WINDOW
+            && gestureBuf.current.every(v => v === LABEL_LEFT)) {
+              lastConfirmedGesture.current = null;
+              handlersRef.current.moveBookingSummaryLeft()
+              gestureBufferReset(); 
+              return;
+        }
+        // UP
+        if (gestureBuf.current.length === GESTURE_WINDOW
+            && gestureBuf.current.every(v => v === LABEL_UP)) {
+              lastConfirmedGesture.current = null;
+              handlersRef.current.moveBookingSummaryUp();
+              gestureBufferReset();
+              return;
+        }
+        // DOWN
+        if (gestureBuf.current.length === GESTURE_WINDOW
+            && gestureBuf.current.every(v => v === LABEL_DOWN)) {
+              lastConfirmedGesture.current = null;
+              handlersRef.current.moveBookingSummaryDown();
+              gestureBufferReset(); 
+              return;
+        }
+        // OK
+        if (gestureBuf.current.length === GESTURE_WINDOW
+            && gestureBuf.current.every(v => v === LABEL_OK) 
+            && bookingSummarySelectedIndexRef.current !== null) {
+
+              const idx = bookingSummarySelectedIndexRef.current;
+
+              // check if the current row is equal to max row
+              if(idx === 0) {
+                // we are at "go back" button
+                setMode(MODE.SEAT);
+                setSeatPos({row: null, col: null});
+
+              } else if(idx === 1) {
+                // booking confirmed
+                setDemoEndModal(true);
+              }
+
+              lastConfirmedGesture.current = null;
+
+              lastActionRef.current = now;
+
+              gestureBufferReset(); 
+
+              return;
+        }
       }
+
+
 
       // otherwise don't do anything
       return;
@@ -753,7 +910,7 @@ const getMaxCol = row =>
   }, [model, cameraActive]);
 
   const onSelectTime = ({ row, col }) => {
-    console.log('clicked time:', { row, col });
+    //console.log('clicked time:', { row, col });
 
     // non reagire se siamo in modalità gesture o voice
     if (!gestureMode && !voiceMode) {
@@ -816,19 +973,21 @@ const getMaxCol = row =>
   function resetTimeMode() {
     setMode(MODE.TIME);
     setTimePos({row: null, col: null});
+    setTotalPrice(null);
   }
 
   function resetMovieMode() {
     setMode(MODE.MOVIE);
     setTimePos({row: null, col: null});
+    setTotalPrice(null);
   }
 
   function resetSeatMode() {
     setMode(MODE.SEAT);
     setSelectedSeats([]);
     setSeatPos({ row: null, col: null });
+    setTotalPrice(null);
   }
-
   // function utility for movieSelector when using mouse and clicking a time
   function onSelectMovieTime(day, time) {
       setDay(day);
@@ -844,8 +1003,10 @@ const getMaxCol = row =>
       case MODE.TIME:
         return `Choose a time for: ${movies[selectedIndex].title}`;
       case MODE.SEAT:
-        return `Choose seats for the movie: ${movies[selectedIndex].title}, on the day: "${day}" 
+        return `Choose seats for the movie: ${movies[selectedIndex].title} in Cinema Hall ${selectedCinemaHall}, on the day: "${day}" 
         at time: ${hour}`;
+      case MODE.BOOKING_SUMMARY:
+        return `Booking Summary`
       default:
         return "";
     }
@@ -919,13 +1080,42 @@ const getMaxCol = row =>
               focused={seatPos}
               onSelect={handleSeatSelection}
               onBack={() => resetTimeMode()}
-              onConfirm={() => console.log("Seats confirmed", selectedSeatsRef.current)}
+              onConfirm={handleConfirmFromSeats}
               gestureMode = {gestureMode}
               voiceMode = {voiceMode}
               cameraActive = {cameraActive}
+              selectedDay = {day}
+              currency={currency}
+              onTotalPriceChange={handleTotalPriceChange}
+              totalPriceRef={totalPriceRef}
           />
+        )} {mode === MODE.BOOKING_SUMMARY && (
+          <BookingSummary
+              movieTitle={movies[selectedIndex].title}
+              selectedImage={movies[selectedIndex].image}
+              selectedDay={day}
+              selectedTime={hour}
+              selectedSeats={selectedSeats}
+              cinemaHall={selectedCinemaHall}
+              totalPrice={totalPriceRef.current}
+              currency={currency}
+              onBack={() => {setMode(MODE.SEAT); setSeatPos({row: null, col: null})}}
+              onConfirm={handleBookingSummaryConfirm}
+              cameraActive={cameraActive}
+              gestureMode={gestureMode}
+              voiceMode={voiceMode}
+              bookingSummarySelectedIndex={bookingSummarySelectedIndex}
+            />
         )}
       </div>
+
+      <BlockingModal
+        open={demoEndModal}
+        title="Booking confirmed successfully!"
+        subtitle="Demo is over"
+        primaryLabel="OK"
+        onClose={handleEndModalClose}
+      />
 
       {/* show camera overlay only when camera is active */}
       <VideoControl
