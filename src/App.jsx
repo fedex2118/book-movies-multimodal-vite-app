@@ -1,6 +1,6 @@
 // Multimodal movie booking prototype with gesture (MediaPipe Hands) + card expansion
 
-import React, { useEffect, useRef, useCallback, useState } from "react";
+import React, { useEffect, useRef, useCallback, useState, useMemo } from "react";
 import * as tf from '@tensorflow/tfjs';
 import * as tflite from '@tensorflow/tfjs-tflite';
 import '@tensorflow/tfjs-backend-wasm';
@@ -41,7 +41,7 @@ const movies = [
       "Dopo che la Terra è diventata inabitabile a causa della mancanza di ossigeno...",
     director: "Stefon Bristol",
     showtimes: [
-      { day: "Monday 15th June", times: ["18:00", "21:00"] },
+      { day: "Monday 15th June", times: ["18:00", "21:30"] },
       { day: "Tuesday 16th June", times: ["23:00"] },
       { day: "Thursday 18th June", times: ["18:00", "19:00", "21:00"] },
       { day: "Friday 19th June", times: ["17:00", "18:00"] },
@@ -231,16 +231,50 @@ export default function App() {
   }, [toBookingSummary]);
 
 
-  // handler for seats with mouse
-  const handleSeatSelection = ({ row, col, seat }) => {
-    // non consentire selezione se occupato all'origine
-    if (initialOccupied.includes(seat)) return;
-    // toggle sui posti selezionati
-    setSelectedSeats(prev =>
-      prev.includes(seat)
-        ? prev.filter(s => s !== seat)
-        : [...prev, seat]
-    );
+  // safety: upper case seats already occupied
+  const occupiedUpper = useMemo(
+    () => new Set((initialOccupied || []).map(s => String(s).toUpperCase())),
+    [initialOccupied]
+  );
+
+  // handler for seats selection for both voice and mouse
+  const handleSeatSelection = (payload = {}) => {
+    // ---- VOICE case: { type, seats: ['A1','B3', ...] } ----
+    if (typeof payload === 'object' && 'type' in payload && Array.isArray(payload.seats)) {
+      const { type, seats } = payload;
+      if (!seats.length) return;
+
+      const seatsUp = seats.map(s => String(s).toUpperCase());
+
+      setSelectedSeats(prev => {
+        const sel = new Set(prev.map(x => String(x).toUpperCase()));
+
+        if (type === 'select') {
+          for (const code of seatsUp) {
+            if (!occupiedUpper.has(code)) sel.add(code);           // ignore initially occuped
+          }
+        } else if (type === 'deselect') {
+          for (const code of seatsUp) sel.delete(code);
+        } else if (type === 'toggle') { // unused
+          for (const code of seatsUp) {
+            if (sel.has(code)) sel.delete(code);
+            else if (!occupiedUpper.has(code)) sel.add(code);
+          }
+        }
+        return Array.from(sel);
+      });
+      return;
+    }
+
+    // ---- MOUSE case: { row, col, seat } ----
+    const code = String(payload.seat || '').toUpperCase();
+    if (!code || occupiedUpper.has(code)) return;                  // return if initially occuped
+
+    setSelectedSeats(prev => {
+      const sel = new Set(prev.map(x => String(x).toUpperCase()));
+      if (sel.has(code)) sel.delete(code); else sel.add(code);     // toggled with mouse
+      return Array.from(sel);
+    });
   };
 
   // handle end demo modal
@@ -372,9 +406,15 @@ const getMaxCol = row =>
     setHour,
     resetSeatMode,
     setMode,
-    setTimePos,
     resetMovieMode,
-    currentMovieIndex: selectedIndex
+    currentMovieIndex: selectedIndex,
+    currentLayout,
+    initialOccupied,
+    selectedSeatsRef,
+    onSeatSelect: handleSeatSelection,
+    goToBookingSummary: handleConfirmFromSeats,
+    totalPriceRef,
+    resetTimeMode
   });
   
   useEffect(() => { modeRef.current = mode; }, [mode]);
