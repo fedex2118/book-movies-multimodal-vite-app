@@ -46,7 +46,10 @@ export default function MovieSelector({
                     {movie.description}
                     </p>
                     <p className="text-base md:text-lg text-gray-500 mt-1">
-                    Regia: {movie.director}
+                    Direction: {movie.director}
+                    </p>
+                    <p className="text-base md:text-lg text-gray-500 mt-1">
+                    Cast: {movie.cast}
                     </p>
                     <div className="mt-4">
                     {movie.showtimes.map((group, gi) => (
