@@ -53,6 +53,7 @@ const GO_BACK_CMD = /^(?:back|go back|previous|cancel|exit)$/i;
 
 const GO_BACK_MOVIE_CMD = /^(?:go\s*back|back|return)\s*(?:to|towards)?\s*(?:the\s*)?(?:movie(?:\s*(?:list|selection|mode))?|movies?)$/i;
 const GO_BACK_TIME_CMD  = /^(?:go\s*back|back|return)\s*(?:to|towards)?\s*(?:the\s*)?(?:time(?:\s*(?:selection|mode|list))?|times?)$/i;
+const GO_BACK_SEAT_CMD  = /^(?:go\s*back|back|return)\s*(?:to|towards)?\s*(?:the\s*)?(?:seat(?:\s*(?:selection|mode|list))?|seats?)$/i;
 
 // --- Helpers SEAT MODE ---
 const parseSeatList = (s) =>
@@ -77,7 +78,9 @@ export default function useVoiceNavigation({
     onSeatSelect,
     goToBookingSummary,
     totalPriceRef,
-    resetTimeMode
+    resetTimeMode,
+    setSeatPos,
+    handleBookingSummaryConfirm
     }) {
     const [voiceMode, setVoiceMode] = useState(false);
     // indexCurrentMovie
@@ -381,8 +384,72 @@ export default function useVoiceNavigation({
     },
     ];
 
+    // COMMANDS FOR MODE.BOOKING_SUMMARY
     const bookingSummaryCommands = [
+        // ---- GO BACK (DEFAULT SEAT MODE) ----
+        {
+        command: GO_BACK_CMD,
+        matchInterim: false,
+        callback: () => runOnce(() => {
+            if (modeRef.current !== MODE.BOOKING_SUMMARY) return;
+            speak('Going back to seat selection.');
+            logResult('↩ back → ▶ seat selection');
+            setMode(MODE.SEAT);
+            setSeatPos({row: null, col: null});
+            resetTranscript();
+        })
+        },
+        // ---- GO BACK → SEAT ----
+        {
+            command: GO_BACK_SEAT_CMD,
+            matchInterim: false,
+            callback: () => runOnce(() => {
+                if (modeRef.current !== MODE.BOOKING_SUMMARY) return;
+                speak('Going back to seat selection.');
+                logResult('↩ back → ▶ seat selection');
+                setMode(MODE.SEAT);
+                setSeatPos({row: null, col: null});
+                resetTranscript();
+            })
+        },
+        // ---- GO BACK → TIME ----
+        {
+            command: GO_BACK_TIME_CMD,
+            matchInterim: false,
+            callback: () => runOnce(() => {
+                if (modeRef.current !== MODE.BOOKING_SUMMARY) return;
+                speak('Going back to time selection.');
+                logResult('↩ back → ▶ time selection');
+                resetTimeMode();
+                resetTranscript();
+            })
+        },
+        // ---- GO BACK → MOVIE ----
+        {
+            command: GO_BACK_MOVIE_CMD,
+            matchInterim: false,
+            callback: () => runOnce(() => {
+                if (modeRef.current !== MODE.BOOKING_SUMMARY) return;
+                speak('Going back to movie selection.');
+                logResult('↩ back → ▶ movie selection');
+                resetMovieMode();
+                resetTranscript();
+            })
+        },
 
+        // ---- CONFIRM ----
+        {
+            command: CONFIRM_CMD,
+            matchInterim: false,
+            callback: () => runOnce(() => {
+                if (modeRef.current !== MODE.BOOKING_SUMMARY) return;
+                speak('Booking confirmed. Demo end modal displayed.');
+                logResult('✅ Booking confirmed → ▶ demo ends');
+
+                handleBookingSummaryConfirm();
+                resetTranscript();
+            })
+        },
     ]
 
     var currentCommands = []

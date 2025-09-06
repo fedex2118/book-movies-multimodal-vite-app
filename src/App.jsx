@@ -430,7 +430,9 @@ const getMaxCol = row =>
     onSeatSelect: handleSeatSelection,
     goToBookingSummary: handleConfirmFromSeats,
     totalPriceRef,
-    resetTimeMode
+    resetTimeMode,
+    setSeatPos,
+    handleBookingSummaryConfirm
   });
   
   useEffect(() => { modeRef.current = mode; }, [mode]);
