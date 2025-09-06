@@ -14,7 +14,10 @@ export default function BookingSummary({
   cameraActive,
   gestureMode,
   voiceMode,
-  bookingSummarySelectedIndex
+  bookingSummarySelectedIndex,
+  duration,
+  director,
+  cast
 }) {
   // Normalizes seats to a list of strings
   const formatSeat = (seat) => {
@@ -31,8 +34,15 @@ export default function BookingSummary({
   const seatsPretty =
     seatsList.length > 0 ? seatsList.join(", ") : "—";
 
+  // normalize cast string for safety plus calculate end time of the movie
+  const castText = normalizeCast(cast);
+  const endTime =
+    selectedTime && Number.isFinite(Number(duration))
+      ? addMinutesToHHMM(selectedTime, Number(duration))
+      : null;
+
   const base =
-    "px-5 py-2 rounded-lg border transition outline-none focus:ring-2 focus:ring-red-400";
+    "px-6 py-2.5 rounded-full border transition outline-none focus:ring-2 focus:ring-red-400";
 
   return (
     <div className="flex-1 overflow-y-auto p-4">
@@ -75,7 +85,22 @@ export default function BookingSummary({
                   <h2 className="text-xl md:text-2xl font-semibold">{movieTitle || "—"}</h2>
                 </div>
 
-                {/* Giorno / Ora in due colonne su desktop */}
+                {/* Duration & Director */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="rounded-xl border border-gray-200 p-4">
+                    <p className="text-xs uppercase tracking-wide text-gray-500">Duration</p>
+                    <p className="text-lg font-medium">
+                      {Number.isFinite(Number(duration)) ? `${Number(duration)} min` : "—"}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-gray-200 p-4">
+                    <p className="text-xs uppercase tracking-wide text-gray-500">Director</p>
+                    <p className="text-lg font-medium">{director || "—"}</p>
+                  </div>
+                </div>
+
+                
+                {/* Day / Hour */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="rounded-xl border border-gray-200 p-4">
                     <p className="text-xs uppercase tracking-wide text-gray-500">Day</p>
@@ -83,11 +108,22 @@ export default function BookingSummary({
                   </div>
                   <div className="rounded-xl border border-gray-200 p-4">
                     <p className="text-xs uppercase tracking-wide text-gray-500">Time</p>
-                    <p className="text-lg font-medium">{selectedTime || "—"}</p>
+                    <p className="text-lg font-medium">
+                      {selectedTime || "—"}
+                      {endTime ? ` – ${endTime}` : ""}
+                    </p>
                   </div>
                 </div>
 
-                {/* Posti */}
+                {/* Cast */}
+                <div className="rounded-xl border border-gray-200 p-4">
+                  <p className="text-xs uppercase tracking-wide text-gray-500">Cast</p>
+                  <p className="text-base font-medium text-gray-800 break-words">
+                    {castText || "—"}
+                  </p>
+                </div>
+
+                {/* Seats */}
                 <div className="rounded-xl border border-gray-200 p-4">
                   <p className="text-xs uppercase tracking-wide text-gray-500">Seats</p>
                   <p className="text-lg font-medium break-words">{seatsPretty}</p>
@@ -96,7 +132,7 @@ export default function BookingSummary({
                   </p>
                 </div>
 
-                {/* Sala + Prezzo (opzionali) */}
+                {/* Cinema Hall + Total price*/}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="rounded-xl border border-gray-200 p-4">
                     <p className="text-xs uppercase tracking-wide text-gray-500">Cinema Hall</p>
@@ -111,14 +147,19 @@ export default function BookingSummary({
                 </div>
               </div>
 
-              {/* Azioni */}
+              {/* Action buttons */}
               <div className="mt-6 flex flex-col sm:flex-row gap-3">
+                {/* Back button (index 0) */}
+                {(() => {
+                // focus on back button 
+                const isFocusedBack = bookingSummarySelectedIndex === 0 && gestureMode;
+                return (
                 <button
                         type="button"
                         aria-pressed={bookingSummarySelectedIndex === 0}
                         aria-label="Go back"
                         className={`${base} ${
-                          bookingSummarySelectedIndex === 0
+                          isFocusedBack
                             ? "bg-red-600 text-white border-red-600"
                             : "bg-transparent text-gray-800 border-gray-300 hover:bg-red-600 hover:text-white hover:border-red-600"
                         }`}
@@ -126,14 +167,19 @@ export default function BookingSummary({
                       >
                   Go Back
                 </button>
-
+                );
+                })()}
                 {/* Confirm (index 1) */}
+                {(() => {
+                // focus on confirm
+                const isFocusedConfirm = bookingSummarySelectedIndex === 1 && gestureMode;
+                return (
                 <button
                   type="button"
                   aria-pressed={bookingSummarySelectedIndex === 1}
                   aria-label="Confirm"
                   className={`${base} ${
-                    bookingSummarySelectedIndex === 1
+                    isFocusedConfirm
                       ? "bg-red-600 text-white border-red-600"
                       : "bg-transparent text-gray-800 border-gray-300 hover:bg-red-600 hover:text-white hover:border-red-600"
                   }`}
@@ -141,6 +187,8 @@ export default function BookingSummary({
                 >
                   Confirm
                 </button>
+                );
+              })()}
               </div>
 
               
@@ -150,4 +198,23 @@ export default function BookingSummary({
       </div>
     </div>
   );
+}
+
+// * ---------------- local helpers ---------------- */
+
+function normalizeCast(cast) {
+  if (!cast) return "";
+  if (Array.isArray(cast)) return cast.filter(Boolean).join(", ");
+  return String(cast).replace(/\s*,\s*/g, ", ").replace(/\s+/g, " ").trim();
+}
+
+function addMinutesToHHMM(hhmm, minutes) {
+  const m = /^([01]?\d|2[0-3]):([0-5]\d)$/.exec(String(hhmm));
+  if (!m) return null;
+  const h = Number(m[1]), min = Number(m[2]);
+  const d = new Date(2000, 0, 1, h, min, 0, 0); // fake date
+  d.setMinutes(d.getMinutes() + Number(minutes || 0));
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  return `${hh}:${mm}`;
 }
