@@ -254,14 +254,14 @@ export default function useVoiceNavigation({
     const seatModeCommands = [
     // GO BACK DEFAULT (to TIME)
     {
-    command: GO_BACK_CMD,
-    matchInterim: false,
-    callback: () => runOnce(() => {
-        if (modeRef.current !== MODE.SEAT) return;
-        speak('Going back to time selection.');
-        logResult('↩ back → ▶ time selection');
-        resetTimeMode();
-        resetTranscript();
+        command: GO_BACK_CMD,
+        matchInterim: false,
+        callback: () => runOnce(() => {
+            if (modeRef.current !== MODE.SEAT) return;
+            speak('Going back to time selection.');
+            logResult('↩ back → ▶ time selection');
+            resetTimeMode();
+            resetTranscript();
     })
     },
     // ---- GO BACK → MOVIE ----
@@ -269,11 +269,11 @@ export default function useVoiceNavigation({
         command: GO_BACK_MOVIE_CMD,
         matchInterim: false,
         callback: () => runOnce(() => {
-        if (modeRef.current !== MODE.SEAT) return;
-        speak('Going back to movie selection.');
-        logResult('↩ back → ▶ movie selection');
-        resetMovieMode();
-        resetTranscript();
+            if (modeRef.current !== MODE.SEAT) return;
+            speak('Going back to movie selection.');
+            logResult('↩ back → ▶ movie selection');
+            resetMovieMode();
+            resetTranscript();
         })
     },
 
@@ -282,11 +282,11 @@ export default function useVoiceNavigation({
         command: GO_BACK_TIME_CMD,
         matchInterim: false,
         callback: () => runOnce(() => {
-        if (modeRef.current !== MODE.SEAT) return;
-        speak('Going back to time selection.');
-        logResult('↩ back → ▶ time selection');
-        resetTimeMode();
-        resetTranscript();
+            if (modeRef.current !== MODE.SEAT) return;
+            speak('Going back to time selection.');
+            logResult('↩ back → ▶ time selection');
+            resetTimeMode();
+            resetTranscript();
         })
     },
 
@@ -295,31 +295,31 @@ export default function useVoiceNavigation({
         command: SELECT_SEATS_CMD,
         matchInterim: false,
         callback: (seatsGroup) => runOnce(() => {
-        if (modeRef.current !== MODE.SEAT) return;
+            if (modeRef.current !== MODE.SEAT) return;
 
-        const wanted = parseSeatList(seatsGroup);
-        const selectedSet = getSelectedSet();
+            const wanted = parseSeatList(seatsGroup);
+            const selectedSet = getSelectedSet();
 
-        const toAdd = [];
-        const skipped = [];
+            const toAdd = [];
+            const skipped = [];
 
-        for (const code of wanted) {
-            if (!validSeatSet.has(code)) { skipped.push(`${code} (not exists)`); continue; }
-            if (occupiedSet.has(code))   { skipped.push(`${code} (occupied)`);   continue; }
-            if (selectedSet.has(code))   { skipped.push(`${code} (already selected)`); continue; }
-            toAdd.push(code);
-        }
+            for (const code of wanted) {
+                if (!validSeatSet.has(code)) { skipped.push(`${code} (not exists)`); continue; }
+                if (occupiedSet.has(code))   { skipped.push(`${code} (occupied)`);   continue; }
+                if (selectedSet.has(code))   { skipped.push(`${code} (already selected)`); continue; }
+                toAdd.push(code);
+            }
 
-        if (toAdd.length) {
-            onSeatSelect?.({ type: 'select', seats: toAdd });
-            const extra = skipped.length ? ` | Skipped: ${skipped.join(', ')}` : '';
-            speak(`Selected ${toAdd.join(', ')}`);
-            logResult(`🎟️ Selected: ${toAdd.join(', ')}${extra}`);
-        } else {
-            speak('No seats could be selected, please repeat.');
-            logResult('❌ No seats could be selected. Please repeat the command.');
-        }
-        resetTranscript();
+            if (toAdd.length) {
+                onSeatSelect?.({ type: 'select', seats: toAdd });
+                const extra = skipped.length ? ` | Skipped: ${skipped.join(', ')}` : '';
+                speak(`Selected ${toAdd.join(', ')}`);
+                logResult(`🎟️ Selected: ${toAdd.join(', ')}${extra}`);
+            } else {
+                speak('No seats could be selected, please repeat.');
+                logResult('❌ No seats could be selected. Please repeat the command.');
+            }
+            resetTranscript();
         })
     },
 
@@ -328,35 +328,35 @@ export default function useVoiceNavigation({
         command: DESELECT_SEATS_CMD,
         matchInterim: false,
         callback: (seatsGroup) => runOnce(() => {
-        if (modeRef.current !== MODE.SEAT) return;
+            if (modeRef.current !== MODE.SEAT) return;
 
-        const wanted = parseSeatList(seatsGroup);
-        const selectedSet = getSelectedSet();
+            const wanted = parseSeatList(seatsGroup);
+            const selectedSet = getSelectedSet();
 
-        console.log("selectedSet:", selectedSet);
-        console.log("validSeatSet:", validSeatSet);
-        console.log("wanted", wanted);
-        console.log("currentLayout", currentLayout);
+            console.log("selectedSet:", selectedSet);
+            console.log("validSeatSet:", validSeatSet);
+            console.log("wanted", wanted);
+            console.log("currentLayout", currentLayout);
 
-        const toRemove = [];
-        const notFound = [];
+            const toRemove = [];
+            const notFound = [];
 
-        for (const code of wanted) {
-            if (!validSeatSet.has(code)) { notFound.push(`${code} (not exists)`); continue; }
-            if (selectedSet.has(code)) toRemove.push(code);
-            else notFound.push(`${code} (not selected)`);
-        }
+            for (const code of wanted) {
+                if (!validSeatSet.has(code)) { notFound.push(`${code} (not exists)`); continue; }
+                if (selectedSet.has(code)) toRemove.push(code);
+                else notFound.push(`${code} (not selected)`);
+            }
 
-        if (toRemove.length) {
-            onSeatSelect?.({ type: 'deselect', seats: toRemove });
-            const extra = notFound.length ? ` | Skipped: ${notFound.join(', ')}` : '';
-            speak(`Removed ${toRemove.join(', ')}`);
-            logResult(`🗑️ Deselected: ${toRemove.join(', ')}${extra}`);
-        } else {
-            speak('No matching seats to deselect, please repeat.');
-            logResult('⚠️ No matching seats to deselect. Please repeat the command.');
-        }
-        resetTranscript();
+            if (toRemove.length) {
+                onSeatSelect?.({ type: 'deselect', seats: toRemove });
+                const extra = notFound.length ? ` | Skipped: ${notFound.join(', ')}` : '';
+                speak(`Removed ${toRemove.join(', ')}`);
+                logResult(`🗑️ Deselected: ${toRemove.join(', ')}${extra}`);
+            } else {
+                speak('No matching seats to deselect, please repeat.');
+                logResult('⚠️ No matching seats to deselect. Please repeat the command.');
+            }
+            resetTranscript();
         })
     },
 
@@ -365,18 +365,18 @@ export default function useVoiceNavigation({
         command: CONFIRM_CMD,
         matchInterim: false,
         callback: () => runOnce(() => {
-        if (modeRef.current !== MODE.SEAT) return;
-        speak('Seats confirmed. Showing booking summary.');
-        logResult('✅ Seats confirmed → ▶ booking summary');
+            if (modeRef.current !== MODE.SEAT) return;
+            speak('Seats confirmed. Showing booking summary.');
+            logResult('✅ Seats confirmed → ▶ booking summary');
 
-        const total = Number(totalPriceRef?.current) || 0;
+            const total = Number(totalPriceRef?.current) || 0;
 
-        if (typeof goToBookingSummary === 'function') {
-            goToBookingSummary(total);
-        } else {
-            setMode(MODE.BOOKING_SUMMARY);
-        }
-        resetTranscript();
+            if (typeof goToBookingSummary === 'function') {
+                goToBookingSummary(total);
+            } else {
+                setMode(MODE.BOOKING_SUMMARY);
+            }
+            resetTranscript();
         })
     },
     ];
