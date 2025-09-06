@@ -39,7 +39,9 @@ export default function VoiceControl({
       )}
       {mode === MODE.SEAT && (
         <div className="mt-2 mb-4 w-full text-center text-gray-600 text-sm">
-          🎤 TODO
+          🎤 Use voice to select/deselect seats: "select A1 E5", "deselect A1 and G4", ...
+          Say "go back" to go back to time selection or say "go back to movie selection" to go back to movie selection<br/>
+          When ready to confirm choosen seats say "confirm"
         </div>
       )}
       {mode === MODE.BOOKING_SUMMARY && (
