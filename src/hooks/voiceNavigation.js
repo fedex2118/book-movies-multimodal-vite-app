@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 
 import { MODE } from "../constants/modes";
@@ -26,16 +26,40 @@ const BOOK_NO_TIME_CMD =
 // REGEX MODE TIME
 // groups: 1=time, 2=day (optional)
 const TIME_ONLY_CMD =
-/^(?:show|choose|select|pick|set|book|reserve)\s+(?:(?:a|the|at)\s+)?(?:time\s+)?((?:[01]?\d|2[0-3])[:.][0-5]\d|(?:[01]?\d|2[0-3])(?:\s*h)?|(?:0?\d|1[0-2])(?::(?:[0-5]\d))?\s*(?:a\.?m\.?|p\.?m\.?)?)(?:\s+on\s+(.+))?$/i;
+/^(?:show|choose|select|pick|set|book|reserve)\s+(?:(?:a|the|at)\s+)?(?:time\s+)?((?:[01]?\d|2[0-3])[:.][0-5]\d|(?:[01]?\d|2[0-3])[0-5]\d|(?:[01]?\d|2[0-3])(?:\s*h)?|(?:0?\d|1[0-2])(?::(?:[0-5]\d))?\s*(?:a\.?m\.?|p\.?m\.?)?)(?:\s+on\s+(.+))?$/i;
+
 
 // (es. "choose 21th June at 9pm")
 // groups: 1=day, 2=time
 const DAY_AT_TIME_NO_MOVIE =
 /^(?:show|choose|select|pick|set|book|reserve)\s+(.+?)\s*(?:\s+(?:a|the|at|after))?\s*((?:[01]?\d|2[0-3])[:.][0-5]\d|(?:[01]?\d|2[0-3])(?:\s*h)?|(?:0?\d|1[0-2])(?::[0-5]\d)?\s*(?:a\.?m\.?|p\.?m\.?))$/i;
 
+// REGEX SEAT MODE
+// SELECT seats (movie/seat(s) optional; list “A1,A2  A3”/“A1 and A2”)
+const SELECT_SEATS_CMD =
+/^(?:choose|pick|select|set)\s+(?:a|the\s+)?(?:movie\s+)?(?:seat|seats)?\s*([A-Za-z]{1,2}\s*\d{1,2}(?:\s*(?:,|\band\b)?\s*[A-Za-z]{1,2}\s*\d{1,2})*)$/i;
+
+// DESELECT seats (synonim + optional)
+const DESELECT_SEATS_CMD =
+/^(?:deselect|disconnect|remove|cancel|unselect|unpick)\s+(?:a|the\s+)?(?:movie\s+)?(?:seat|seats)?\s*([A-Za-z]{1,2}\s*\d{1,2}(?:\s*(?:,|\band\b)?\s*[A-Za-z]{1,2}\s*\d{1,2})*)$/i;
+
+// REGEX CONFIRM
+// CONFIRM command
+const CONFIRM_CMD = /^(?:confirm|ok|okay|proceed|continue)(?:\s+(?:selection|seats?|booking|reservation))?$/i;
+
 // REGEX GO BACK
 // BACK command
 const GO_BACK_CMD = /^(?:back|go back|previous|cancel|exit)$/i;
+
+const GO_BACK_MOVIE_CMD = /^(?:go\s*back|back|return)\s*(?:to|towards)?\s*(?:the\s*)?(?:movie(?:\s*(?:list|selection|mode))?|movies?)$/i;
+const GO_BACK_TIME_CMD  = /^(?:go\s*back|back|return)\s*(?:to|towards)?\s*(?:the\s*)?(?:time(?:\s*(?:selection|mode|list))?|times?)$/i;
+
+// --- Helpers SEAT MODE ---
+const parseSeatList = (s) =>
+  (s?.match(/[A-Za-z]{1,2}\s*\d{1,2}/g) || [])
+    .map(x => x.replace(/\s+/g, '').toUpperCase());
+
+const buildValidSeatSet = (layout) => new Set((layout || []).flat().filter(Boolean));
 
 export default function useVoiceNavigation({
     modeRef,
@@ -45,9 +69,15 @@ export default function useVoiceNavigation({
     setHour,
     resetSeatMode,
     setMode,
-    setTimePos,
     resetMovieMode,
-    currentMovieIndex
+    currentMovieIndex,
+    currentLayout,
+    initialOccupied,
+    selectedSeatsRef,
+    onSeatSelect,
+    goToBookingSummary,
+    totalPriceRef,
+    resetTimeMode
     }) {
     const [voiceMode, setVoiceMode] = useState(false);
     // indexCurrentMovie
@@ -61,7 +91,7 @@ export default function useVoiceNavigation({
 
     // voice log
     const [voiceLog, setVoiceLog] = useState([]);
-    const logResult = (message) => setVoiceLog(prev => [...prev.slice(-1), `🗣️ ${message}`]);
+    const logResult = (message) => setVoiceLog([`🗣️ ${message}`]);
 
     const handlingRef = useRef(false);
 
@@ -72,6 +102,18 @@ export default function useVoiceNavigation({
         .replace(/[’'".,;:!?()\-–—_]/g, " ")                // cleaned punctuation
         .replace(/\s+/g, " ")                               // multiple spaces -> one space
         .trim();
+
+    // for SEAT MODE
+    const validSeatSet = useMemo(
+        () => buildValidSeatSet(currentLayout),
+        [currentLayout]
+    );
+    const occupiedSet = useMemo(
+        () => new Set((initialOccupied || []).map(s => s.toUpperCase())),
+        [initialOccupied]
+    );
+    // current selected seats as Set
+    const getSelectedSet = () => new Set((selectedSeatsRef?.current || []).map(s => s.toUpperCase()));
 
     // voice commands
     // COMMANDS FOR MODE.MOVIE
@@ -146,8 +188,7 @@ export default function useVoiceNavigation({
 
         setMovieIndex(idx);
 
-        setMode(MODE.TIME);
-        setTimePos({ row: null, col: null });
+        resetTimeMode();
 
         speak(`Choose a time for ${movies[idx].title}`);
         logResult(`Book "${movieSpoken}" ${daySpoken ? `on "${daySpoken}" ` : ''}→ ▶ time selection`);
@@ -210,7 +251,139 @@ export default function useVoiceNavigation({
     ]
 
     // COMMANDS FOR MODE.SEAT
-    const seatModeCommands = [];
+    const seatModeCommands = [
+    // GO BACK DEFAULT (to TIME)
+    {
+    command: GO_BACK_CMD,
+    matchInterim: false,
+    callback: () => runOnce(() => {
+        if (modeRef.current !== MODE.SEAT) return;
+        speak('Going back to time selection.');
+        logResult('↩ back → ▶ time selection');
+        resetTimeMode();
+        resetTranscript();
+    })
+    },
+    // ---- GO BACK → MOVIE ----
+    {
+        command: GO_BACK_MOVIE_CMD,
+        matchInterim: false,
+        callback: () => runOnce(() => {
+        if (modeRef.current !== MODE.SEAT) return;
+        speak('Going back to movie selection.');
+        logResult('↩ back → ▶ movie selection');
+        resetMovieMode();
+        resetTranscript();
+        })
+    },
+
+    // ---- GO BACK → TIME ----
+    {
+        command: GO_BACK_TIME_CMD,
+        matchInterim: false,
+        callback: () => runOnce(() => {
+        if (modeRef.current !== MODE.SEAT) return;
+        speak('Going back to time selection.');
+        logResult('↩ back → ▶ time selection');
+        resetTimeMode();
+        resetTranscript();
+        })
+    },
+
+    // ---- SELECT SEATS ----
+    {
+        command: SELECT_SEATS_CMD,
+        matchInterim: false,
+        callback: (seatsGroup) => runOnce(() => {
+        if (modeRef.current !== MODE.SEAT) return;
+
+        const wanted = parseSeatList(seatsGroup);
+        const selectedSet = getSelectedSet();
+
+        const toAdd = [];
+        const skipped = [];
+
+        for (const code of wanted) {
+            if (!validSeatSet.has(code)) { skipped.push(`${code} (not exists)`); continue; }
+            if (occupiedSet.has(code))   { skipped.push(`${code} (occupied)`);   continue; }
+            if (selectedSet.has(code))   { skipped.push(`${code} (already selected)`); continue; }
+            toAdd.push(code);
+        }
+
+        if (toAdd.length) {
+            onSeatSelect?.({ type: 'select', seats: toAdd });
+            const extra = skipped.length ? ` | Skipped: ${skipped.join(', ')}` : '';
+            speak(`Selected ${toAdd.join(', ')}`);
+            logResult(`🎟️ Selected: ${toAdd.join(', ')}${extra}`);
+        } else {
+            speak('No seats could be selected, please repeat.');
+            logResult('❌ No seats could be selected. Please repeat the command.');
+        }
+        resetTranscript();
+        })
+    },
+
+    // ---- DESELECT SEATS ----
+    {
+        command: DESELECT_SEATS_CMD,
+        matchInterim: false,
+        callback: (seatsGroup) => runOnce(() => {
+        if (modeRef.current !== MODE.SEAT) return;
+
+        const wanted = parseSeatList(seatsGroup);
+        const selectedSet = getSelectedSet();
+
+        console.log("selectedSet:", selectedSet);
+        console.log("validSeatSet:", validSeatSet);
+        console.log("wanted", wanted);
+        console.log("currentLayout", currentLayout);
+
+        const toRemove = [];
+        const notFound = [];
+
+        for (const code of wanted) {
+            if (!validSeatSet.has(code)) { notFound.push(`${code} (not exists)`); continue; }
+            if (selectedSet.has(code)) toRemove.push(code);
+            else notFound.push(`${code} (not selected)`);
+        }
+
+        if (toRemove.length) {
+            onSeatSelect?.({ type: 'deselect', seats: toRemove });
+            const extra = notFound.length ? ` | Skipped: ${notFound.join(', ')}` : '';
+            speak(`Removed ${toRemove.join(', ')}`);
+            logResult(`🗑️ Deselected: ${toRemove.join(', ')}${extra}`);
+        } else {
+            speak('No matching seats to deselect, please repeat.');
+            logResult('⚠️ No matching seats to deselect. Please repeat the command.');
+        }
+        resetTranscript();
+        })
+    },
+
+    // ---- CONFIRM ----
+    {
+        command: CONFIRM_CMD,
+        matchInterim: false,
+        callback: () => runOnce(() => {
+        if (modeRef.current !== MODE.SEAT) return;
+        speak('Seats confirmed. Showing booking summary.');
+        logResult('✅ Seats confirmed → ▶ booking summary');
+
+        const total = Number(totalPriceRef?.current) || 0;
+
+        if (typeof goToBookingSummary === 'function') {
+            goToBookingSummary(total);
+        } else {
+            setMode(MODE.BOOKING_SUMMARY);
+        }
+        resetTranscript();
+        })
+    },
+    ];
+
+    const bookingSummaryCommands = [
+
+    ]
 
     var currentCommands = []
     if(modeRef.current === MODE.MOVIE) {
@@ -219,6 +392,8 @@ export default function useVoiceNavigation({
         currentCommands = timeModeCommands;
     } else if(modeRef.current === MODE.SEAT) {
         currentCommands = seatModeCommands;
+    } else if(modeRef.current === MODE.BOOKING_SUMMARY) {
+        currentCommands = bookingSummaryCommands;
     }
 
     const commands = currentCommands;
@@ -283,9 +458,11 @@ export default function useVoiceNavigation({
     // handles time recognition in english, for example 21:00 .. 21 .. 9pm are accepted
     function normalizeTimeTo24h(input) {
         const s = String(input || '').trim().toLowerCase();
+        let m = s.match(/^([01]?\d|2[0-3])([0-5]\d)$/);
+        if (m) return `${m[1].padStart(2,'0')}:${m[2]}`;       
 
         // 24h minutes included: 21:00 / 7.05
-        let m = s.match(/^([01]?\d|2[0-3])[:.](\d{2})$/);
+        m = s.match(/^([01]?\d|2[0-3])[:.](\d{2})$/);
         if (m) return `${m[1].padStart(2,'0')}:${m[2]}`;
 
         // 24h minutes excluded: 21 / 7 / 21h
@@ -371,8 +548,7 @@ export default function useVoiceNavigation({
 
         if (rowsWithTime.length > 1) {
             // if the same time is found on more than one day go to time selection
-            setMode(MODE.TIME);
-            setTimePos({ row: null, col: null });
+            resetTimeMode();
 
             const daysList = rowsWithTime.map(r => shows[r].day).join(', ');
             speak(`Multiple days have ${time} for ${movies[idx].title}. Please choose a day.`);
