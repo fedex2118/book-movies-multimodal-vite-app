@@ -28,15 +28,21 @@ export default function VoiceControl({
 
       {mode === MODE.MOVIE && (
         <div className="mt-2 mb-4 w-full text-center text-gray-600 text-sm">
-          🎤 Use voice to find/book a movie: "find movie abc", "book movie xyz at time ..."
+          🎤 Use voice to find/book a movie: "find movie abc", "book movie xyz at time 15 on 16th September", "book xyz", ...
         </div>
       )}
       {mode === MODE.TIME && (
         <div className="mt-2 mb-4 w-full text-center text-gray-600 text-sm">
-          🎤 TODO
+          🎤 Use voice to choose/select/pick/book the day and time: "choose Monday 15th June at 18", "book 18 on 19th October", ...
+          Or say "go back" to go back to movie selection
         </div>
       )}
       {mode === MODE.SEAT && (
+        <div className="mt-2 mb-4 w-full text-center text-gray-600 text-sm">
+          🎤 TODO
+        </div>
+      )}
+      {mode === MODE.BOOKING_SUMMARY && (
         <div className="mt-2 mb-4 w-full text-center text-gray-600 text-sm">
           🎤 TODO
         </div>
@@ -52,7 +58,7 @@ export default function VoiceControl({
       {/* Voice logs */}
       {voiceLog.length > 0 && (
         <div className="mt-4 text-left text-xs text-gray-600">
-          <h4 className="font-semibold">Log comandi vocali:</h4>
+          <h4 className="font-semibold">Voice command log:</h4>
           <ul className="list-disc list-inside">
             {voiceLog.map((log, i) => (
               <li key={i}>{log}</li>
