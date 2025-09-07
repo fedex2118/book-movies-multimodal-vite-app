@@ -28,7 +28,7 @@ export default function SeatSelector({
     const backColIndex    = 3;
     const confirmColIndex = 4;
 
-    const base = "w-16 h-12 flex items-center justify-center text-sm font-medium rounded-sm transition";
+    const base = "w-16 h-8 flex items-center justify-center text-sm font-medium rounded-sm transition";
 
     // special business case wednesday
     const dn = (selectedDay || "").toLowerCase();
@@ -52,19 +52,19 @@ export default function SeatSelector({
     const handleConfirm = () => {
       if (selected.length === 0) return;
       if(gestureMode || voiceMode) return;
-      onConfirm?.(totalPrice); // passa il totale “vero” al parent
+      onConfirm?.(totalPrice); // give total price to parent App.jsx
     };
 
   return (
-    // wrapper per centrare la grid
+    // wrapper to center grid
       <div className="relative mx-auto max-w-screen-xl px-4">
           {cameraActive && (
             <p className="text-center text-gray-700 text-base md:text-base mb-3">
-              Move through seats using index finger 👆👇👈👉, use 👌 gesture to select a seat<br/>
-              Use 🖐️ gesture to deselect previously selected seat. Once done, use 👌 gesture on <em>Confirm</em> button to confirm your choice or use it on <em>Go back</em> button to go back to time selection.
+              Move through seats using index finger 👆👇👈👉, use 👌 gesture to select a seat. Use 🖐️ gesture to deselect previously selected seat<br/>
+              Once done, use 👌 gesture on <em>Confirm</em> button to confirm your choice or use it on <em>Go back</em> button to go back to time selection.
             </p>
           )}
-          {/* Riga sempre visibile */}
+          {/* Screen is here info */}
           <div className="mt-2 mb-3 w-full text-center text-500">
             ----- The screen is here -----
           </div>
@@ -75,7 +75,7 @@ export default function SeatSelector({
               style={{ gridTemplateColumns: `repeat(${cols}, 4rem)` }}
             >
 
-            {/** —— Righe dei posti —— **/}
+            {/** —— Seats rows —— **/}
             {layout.flatMap((rowArr, r) =>
               rowArr.map((seat, c) => {
                 const key = `seat-${r}-${c}`;
@@ -116,12 +116,12 @@ export default function SeatSelector({
               })
             )}
 
-            {/* celle vuote fino alla colonna di “Indietro” */}
+            {/* Empty celss until "go back" cell */}
             {Array.from({ length: backColIndex }).map((_, idx) => (
               <div key={`pad-before-${idx}`} />
             ))}
 
-            {/* Bottone Indietro */}
+            {/* Go back button */}
             <button
               key="back-btn"
               onClick={!gestureMode && !voiceMode ? onBack : undefined}
@@ -135,7 +135,7 @@ export default function SeatSelector({
               Go Back
             </button>
 
-            {/* Bottone Conferma */}
+            {/* Confirm button */}
             <button
               key="confirm-btn"
               onClick={handleConfirm}
@@ -155,15 +155,15 @@ export default function SeatSelector({
               Confirm
             </button>
 
-            {/* celle vuote per il resto */}
+            {/* empty cells for the rest */}
             {Array.from({ length: cols - confirmColIndex - 1 }).map((_, idx) => (
               <div key={`pad-after-${idx}`} />
             ))}
 
           </div>
         </div>
-        {/* DESTRA: colonna prezzi (10rem = 40 * 0.25rem = w-40) */}
-        <div className="hidden md:flex flex-col gap-3 w-30 md:absolute md:left-full md:top-20 md:ml-6">
+        {/* Right side: price column */}
+        <div className="hidden md:flex flex-col gap-3 w-30 md:absolute md:left-full md:top-40 md:ml-6">
           <div className="rounded-lg border border-gray-200 p-3">
             <p className="text-xs uppercase tracking-wide text-gray-500">Price / seat</p>
             <p className="text-sm font-semibold">

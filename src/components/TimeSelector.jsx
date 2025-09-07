@@ -1,5 +1,17 @@
 import React from 'react';
 
+// local helper, retrocompatible (handles both objects and string type)
+function readTimeEntry(entry) {
+  if (entry && typeof entry === 'object') {
+    return {
+      timeStr: entry.time,
+      screeningId: entry.screeningId ?? null,
+      roomId: entry.roomId ?? null,
+    };
+  }
+  return { timeStr: String(entry || ''), screeningId: null, roomId: null };
+}
+
 export default function TimeSelector({
   showtimes,
   timePos,
@@ -17,9 +29,9 @@ export default function TimeSelector({
     <div className="flex-1 overflow-y-auto p-4">
       {cameraActive && (
         <p className="text-center text-gray-700 text-lg md:text-base mb-3">
-            Move through times using index finger 👆👇👈👉, use 👌 gesture to select a time<br/>
-            When over <em>"go back to movies"</em>, use 👌 gesture to go back
-      </p>
+          Move through times using index finger 👆👇👈👉, use 👌 gesture to select a time<br/>
+          When over <em>"go back to movies"</em>, use 👌 gesture to go back
+        </p>
       )}
       <div className="w-full flex justify-center">
         <div className="flex w-full max-w-4xl gap-8 items-start">
@@ -35,26 +47,21 @@ export default function TimeSelector({
 
           {/* Times at right side */}
           <div className="flex-1 flex flex-col items-start">
-            
             {/* Day + time grid */}
             <div className="space-y-8 w-full">
               {showtimes.map((show, row) => (
                 <div key={row}>
-                  {/* Testo giorno */}
                   <p className="font-semibold text-lg mb-2">
                     {show.day}:
                   </p>
 
-                  {/* Inline-grid alingend to left side */}
                   <div
                     className="inline-grid gap-4 justify-items-start"
-                    style={{
-                      gridTemplateColumns: `repeat(${maxCols + 1}, 6rem)`
-                    }}
+                    style={{ gridTemplateColumns: `repeat(${maxCols + 1}, 6rem)` }}
                   >
-                    {show.times.map((t, col) => {
-                      const isFocused =
-                        timePos.row === row && timePos.col === col;
+                    {(show.times || []).map((t, col) => {
+                      const { timeStr } = readTimeEntry(t);
+                      const isFocused = timePos.row === row && timePos.col === col;
                       return (
                         <button
                           key={col}
@@ -67,7 +74,7 @@ export default function TimeSelector({
                             }
                           `}
                         >
-                          {t}
+                          {timeStr}
                         </button>
                       );
                     })}
@@ -76,22 +83,16 @@ export default function TimeSelector({
               ))}
             </div>
 
-
-            {/* Riga aggiuntiva per il bottone Back */}
+            {/* Back row */}
             <div
               className="inline-grid gap-4 justify-items-start mt-8"
               style={{ gridTemplateColumns: `auto repeat(${maxCols}, 6rem)` }}
             >
               {(() => {
-                // focus sul pulsante Back
                 const isFocusedBack = timePos.row === extraRowIndex && timePos.col === 0;
                 return (
                   <button
-                    onClick={() => {
-                      if(!gestureMode && !voiceMode) {
-                        onBack();
-                      }
-                    }}
+                    onClick={() => { if (!gestureMode && !voiceMode) onBack(); }}
                     className={`
                       px-8 py-4 rounded-full text-base font-medium transition border-2 whitespace-nowrap
                       ${isFocusedBack
@@ -105,10 +106,7 @@ export default function TimeSelector({
                 );
               })()}
 
-              {/* celle vuote per mantenere allineamento */}
-              {Array.from({ length: maxCols }).map((_, idx) => (
-                <div key={idx} />
-              ))}
+              {Array.from({ length: maxCols }).map((_, idx) => <div key={idx} />)}
             </div>
           </div>
         </div>

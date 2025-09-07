@@ -80,7 +80,9 @@ export default function useVoiceNavigation({
     totalPriceRef,
     resetTimeMode,
     setSeatPos,
-    handleBookingSummaryConfirm
+    handleBookingSummaryConfirm,
+    resolveLayout,
+    readTimeEntry
     }) {
     const [voiceMode, setVoiceMode] = useState(false);
     // indexCurrentMovie
@@ -336,10 +338,10 @@ export default function useVoiceNavigation({
             const wanted = parseSeatList(seatsGroup);
             const selectedSet = getSelectedSet();
 
-            console.log("selectedSet:", selectedSet);
-            console.log("validSeatSet:", validSeatSet);
-            console.log("wanted", wanted);
-            console.log("currentLayout", currentLayout);
+            // console.log("selectedSet:", selectedSet);
+            // console.log("validSeatSet:", validSeatSet);
+            // console.log("wanted", wanted);
+            // console.log("currentLayout", currentLayout);
 
             const toRemove = [];
             const notFound = [];
@@ -550,16 +552,20 @@ export default function useVoiceNavigation({
     }
 
     function findRowsForTime(shows, time) {
-        const rows = [];
-        for (let r = 0; r < shows.length; r++) {
-            if ((shows[r].times || []).includes(time)) rows.push(r);
-        }
-        return rows;
+    const rows = [];
+    for (let r = 0; r < shows.length; r++) {
+        const hasTime = (shows[r].times || []).some(t => {
+        const { timeStr } = readTimeEntry(t);   // <<— usa helper passato via props
+        return timeStr === time;
+        });
+        if (hasTime) rows.push(r);
+    }
+    return rows;
     }
 
     // handles transition from movie mode to seat or time mode via voice
     // there are multiple cases handled
-    function handleTimeToSeat({ idx, time, daySpoken }) {
+    async function handleTimeToSeat({ idx, time, daySpoken }) {
         if (idx === -1) {
             speak('Movie not found, could you repeat please?');
             logResult(`Time cmd: movie not found → ❌`);
@@ -573,38 +579,68 @@ export default function useVoiceNavigation({
             return;
         }
 
-        // movie selection
+        // select movie
         setMovieIndex(idx);
 
         const shows = movies[idx].showtimes || [];
 
-        // if day has been told try to match day + time (with flexible comparison)
+        // -------------------------
+        // Case A: user says also Day
+        // -------------------------
         if (daySpoken) {
-            const dayHeard = sanitizeDayHeard(daySpoken); // << NEW
+            const dayHeard = sanitizeDayHeard(daySpoken);
+
+            // find row that matches day and contains time
             let row = -1;
             for (let r = 0; r < shows.length; r++) {
                 const dayStr = shows[r].day || "";
-                if (dayMatchesNormalizedDay(dayStr, dayHeard) && (shows[r].times || []).includes(time)) {
-                row = r; break;
+                if (dayMatchesNormalizedDay(dayStr, dayHeard)) {
+                    // inside row find the entry at that time
+                    const col = (shows[r].times || []).findIndex(
+                    t => readTimeEntry(t).timeStr === time
+                    );
+                    if (col !== -1) { row = r; break; }
                 }
             }
+
             if (row === -1) {
                 speak(`Time ${time} not available on ${dayHeard} for ${movies[idx].title}`);
                 logResult(`Time "${time}" on "${dayHeard}" for "${movies[idx].title}" → ❌ not available`);
                 resetTranscript();
                 return;
             }
-            setDay(shows[row].day);
-            setHour(time);
+
+            const chosenDay = shows[row].day;
+            // fetch exact entry to extract screeningId and roomId
+            const col = (shows[row].times || []).findIndex(
+            t => readTimeEntry(t).timeStr === time
+            );
+            const { timeStr, screeningId, roomId } = readTimeEntry(shows[row].times[col]);
+
+            // update UI
+            setDay(chosenDay);
+            setHour(timeStr);
+
+            // load layout: if we alreadt have screeningId/roomId, we can avoid resolveLayout call
+            try {
+                if (typeof resolveLayout === 'function') {
+                    await resolveLayout(movies[idx].title, chosenDay, timeStr, screeningId, roomId);
+                }
+            } catch (e) {
+                console.warn('Voice resolveLayout failed, using local layout:', e);
+            }
+
             resetSeatMode();
-            speak(`Selected ${time} on ${shows[row].day} for ${movies[idx].title}`);
-            logResult(`Time "${time}" on "${shows[row].day}" for "${movies[idx].title}" → ✅ seat mode`);
+            speak(`Selected ${timeStr} on ${chosenDay} for ${movies[idx].title}`);
+            logResult(`Time "${timeStr}" on "${chosenDay}" for "${movies[idx].title}" → ✅ seat mode`);
             resetTranscript();
             return;
         }
 
-        // Day not told, check how many rows have that time
-        const rowsWithTime = findRowsForTime(shows, time);
+        // -------------------------
+        // Case B: no day has been told
+        // -------------------------
+        const rowsWithTime = findRowsForTime(shows, time); // row array with that chosen time
 
         if (rowsWithTime.length === 0) {
             speak(`Time ${time} not available for ${movies[idx].title}`);
@@ -614,23 +650,41 @@ export default function useVoiceNavigation({
         }
 
         if (rowsWithTime.length > 1) {
-            // if the same time is found on more than one day go to time selection
+            // mode days have the same time ask for the day (MODE.TIME)
             resetTimeMode();
-
             const daysList = rowsWithTime.map(r => shows[r].day).join(', ');
             speak(`Multiple days have ${time} for ${movies[idx].title}. Please choose a day.`);
-            logResult(`Time "${time}" for "${movies[idx].title}" found on multiple days: ${daysList} → ▶ time selection`);
+            logResult(`Time "${time}" for "${movies[idx].title}" on multiple days: ${daysList} → ▶ time selection`);
             resetTranscript();
             return;
         }
 
-        // if the time is only present on one single row we can choose that one safely and go to seat mode
+        // only one day → fetch that row
         const onlyRow = rowsWithTime[0];
-        setDay(shows[onlyRow].day);
-        setHour(time);
+        const chosenDay = shows[onlyRow].day;
+
+        // find the entry of the time in that row and read id/room
+        const col = (shows[onlyRow].times || []).findIndex(
+            t => readTimeEntry(t).timeStr === time
+        );
+        const { timeStr, screeningId, roomId } = readTimeEntry(shows[onlyRow].times[col]);
+
+        // update UI
+        setDay(chosenDay);
+        setHour(timeStr);
+
+        // load grid layout (faster if we have already the screeningId)
+        try {
+            if (typeof resolveLayout === 'function') {
+            await resolveLayout(movies[idx].title, chosenDay, timeStr, screeningId, roomId);
+            }
+        } catch (e) {
+            console.warn('Voice resolveLayout failed, using local layout:', e);
+        }
+
         resetSeatMode();
-        speak(`Selected ${time} on ${shows[onlyRow].day} for ${movies[idx].title}`);
-        logResult(`Time "${time}" on "${shows[onlyRow].day}" for "${movies[idx].title}" → ✅ seat mode`);
+        speak(`Selected ${timeStr} on ${chosenDay} for ${movies[idx].title}`);
+        logResult(`Time "${timeStr}" on "${chosenDay}" for "${movies[idx].title}" → ✅ seat mode`);
         resetTranscript();
     }
 
@@ -678,4 +732,4 @@ export default function useVoiceNavigation({
             setTimeout(() => { handlingRef.current = false; }, 250);
         }
     }
-    }
+}

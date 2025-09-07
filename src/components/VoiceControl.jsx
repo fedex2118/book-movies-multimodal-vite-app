@@ -22,7 +22,7 @@ export default function VoiceControl({
   return (
     <div className="voice-control-container">
       {/* Microphone status */}
-      <div className="text-center relative mt-1 mb-3 text-gray-600 text-lg">
+      <div className="text-center relative mt-0 mb-2 text-gray-600 text-m">
         🎙️ Microphone {listening ? 'On' : 'Off'} — press space bar to talk
       </div>
 

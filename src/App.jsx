@@ -7,6 +7,8 @@ import '@tensorflow/tfjs-backend-wasm';
 
 import downloadCSV from "./hooks/downloadCSV";
 
+import { getMovies } from "./hooks/api"
+
 import MovieSelector from './components/MovieSelector';
 import TimeSelector from './components/TimeSelector';
 import SeatSelector from './components/SeatSelector';
@@ -29,11 +31,11 @@ import VideoControl from "./components/VideoControl";
 
 import { MODE } from "./constants/modes";
 
-const MOVIES_BASE_PATH = "/movie-images/"
+import { api } from "./hooks/api"
 
 const currency = "€";
 
-const movies = [
+/*const movies = [
   {
     title: "Lilo & Stitch",
     altTitles: ["Lilo and Stitch", "Lilo Stitch"],
@@ -131,21 +133,22 @@ const movies = [
     ],    
     image: `${MOVIES_BASE_PATH}happy-holidays.jpg`
   },
+];*/
+
+const INITIAL_MOVIES = [
   {
-    title: "Jurassic world: rebirth",
-    altTitles: ["Jurassic rebirth"], 
-    description: "Uno dei live più importanti della nuova scena musicale giapponese...",
-    director: "Toshihito Hirose",
-    cast: "Scarlett Johansson, Jonathan Bailey, Luna Blaise, Rupert Friend, Mahershala Ali, Ed Skrein, David Iacono, Philippine Velge",
-    duration: 133,
+    title: "Loading title",
+    altTitles: [],
+    description: "Loading description",
+    director: "Loading director",
+    cast: "Loading cast",
+    duration: 0,
     showtimes: [
-      { day: "Monday 15 June", times: ["18:00", "21:00"] },
-      { day: "Tuesday 16 June", times: ["23:00"] },
-      { day: "Wednesday 17 June", times: ["19:00"] }
-    ],
-    image: `${MOVIES_BASE_PATH}jurassic-world-rebirth.jpg`
+
+    ],    
+    image: `Loading image`
   }
-];
+]
 
 // Gesture label indices
 const LABEL_FIST       = 0;
@@ -159,29 +162,33 @@ const LABEL_DOWN       = 7;
 const LABEL_UP         = 8;
 
 const layout0 = [
-  [null,  'A1', 'A2', 'A3', 'A4', 'A5', 'A6', null],
-  ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8'],
-  ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8'],
-  ['D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7', 'D8'],
-  ['E1', 'E2', 'E3', 'E4', 'E5', 'E6', 'E7', 'E8'],
-  ['F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8'],
-  ['G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8'],
-  ['H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'H7', 'H8'],
-  ['I1', 'I2', 'I3', 'I4', 'I5', 'I6', 'I7', 'I8'],
-  [null, null, null, null, 'L1', 'L2', 'L3', 'L4',],
-  [null, null, null, null, 'M1', 'M2', 'M3', 'M4',],
-  [null, null, null, null, 'DD1', 'DD2', 'DD3', 'DD4'],
-];
-
-const layout1 = [
-  ['Y1', 'Y2', 'Y3', 'Y4', 'Y5', 'Y6', 'Y7', 'Y8'],
-  ['X1', 'X2', 'X3', 'X4', 'X5', 'X6', 'X7', 'X8'],
-  ['V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'V7', 'V8'],
-  ['K1', 'K2', 'K3', 'K4', 'K5', 'K6', 'K7', 'K8'],
-  [null, 'P2', 'P3', 'P4', 'P5', 'P6', null, null]
+  [],
 ];
 
 export default function App() {
+
+  // movies loaded
+  const [movies, setMovies] = useState(INITIAL_MOVIES);
+  //console.log(movies)
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const apiMovies = await getMovies();   // [{title, altTitles, description, director, cast, duration, showtimes, image}]
+        if (!alive) return;
+
+        // validation
+        if (Array.isArray(apiMovies) && apiMovies.every(m => m?.title && m?.showtimes)) {
+          setMovies(addMovieIdToTimes(apiMovies));
+        }
+      } catch (err) {
+          console.warn("Failed to fetch /movies, using local fallback:", err);
+          // INITIAL MOVIES fallback
+      }
+    })();
+    return () => { alive = false; };
+  }, []);
 
   // camera handle
   const [cameraActive, setCameraActive] = useState(false);
@@ -208,7 +215,7 @@ export default function App() {
   const dayRef = useRef(null)
   const hourRef = useRef(null)
 
-  // already occupied seats
+  // already occupied seats TODO
   const initialOccupied = ['F3', 'F4', 'H4', 'H5', 'I4'];
   // selected seats from user
   const [selectedSeats, setSelectedSeats] = useState([]);
@@ -234,12 +241,10 @@ export default function App() {
   }, []);
 
   const toBookingSummary = useCallback((p) => {
-    // tieni ref e state allineati
     totalPriceRef.current = p;
     setTotalPrice(p);
     setMode(MODE.BOOKING_SUMMARY);
     setBookingSummarySelectedIndex(-1);
-    //bookingSummarySelectedIndexRef.current = -1;
   }, []);
 
   const handleConfirmFromSeats = useCallback((p) => {
@@ -297,7 +302,7 @@ export default function App() {
   const [demoEndModal, setDemoEndModal] = useState(false);
 
   const handleBookingSummaryConfirm = useCallback(() => {
-    setDemoEndModal(true);       // mostra popup bloccante
+    setDemoEndModal(true);       // popup
   }, []);
 
   // endDemo modal closure
@@ -317,8 +322,8 @@ export default function App() {
 
   const [model, setModel] = useState(null);
 
-  const lastActionRef = useRef(0);         // timestamp dell’ultima action
-  const ACTION_DELAY   = 350; // ms fra uno swipe e l'altro
+  const lastActionRef = useRef(0); // timestamp last gesture used
+  const ACTION_DELAY   = 350; // ms to delay a gesture action
 
   const {
     selectedIndex,
@@ -327,12 +332,14 @@ export default function App() {
     setSelectedIndex: setMovieIndex
   } = movieNavigation(movies.length, lastActionRef, 0, ACTION_DELAY);
 
-  const selectedIndexRef = useRef(selectedIndex);
+  const selectedIndexRef = useRef(0);
   useEffect(() => {
     selectedIndexRef.current = selectedIndex;
   }, [selectedIndex]);
 
-  const currentLayout = selectedIndexRef.current === 0 || selectedIndexRef.current === null ? layout0 : layout1;
+  // grid layouts
+  const [fetchedLayout, setFetchedLayout] = useState(null);
+  const currentLayout = fetchedLayout || layout0;
 
   const buttonRow = currentLayout.length;
 
@@ -363,14 +370,15 @@ export default function App() {
   }, [selectedIndex]);
 
   const maxCols = Math.max(
-    ...movies[selectedIndex].showtimes.map(show => show.times.length)
+    ...(movies[selectedIndex].showtimes || []).map(show => (show.times || []).length)
   ) - 1;
 
-const getMaxRow = () => movies[selectedIndex].showtimes.length;
-const getMaxCol = row =>
-  row === movies[selectedIndex].showtimes.length
-    ? 0
-    : movies[selectedIndex].showtimes[row].times.length - 1;
+  const getMaxRow = () => (movies[selectedIndex].showtimes || []).length;
+
+  const getMaxCol = (row) => {
+    const sts = movies[selectedIndex].showtimes || [];
+    return row === sts.length ? 0 : (sts[row].times || []).length - 1;
+  };
 
   const {
     timePos,
@@ -432,7 +440,9 @@ const getMaxCol = row =>
     totalPriceRef,
     resetTimeMode,
     setSeatPos,
-    handleBookingSummaryConfirm
+    handleBookingSummaryConfirm,
+    resolveLayout,
+    readTimeEntry
   });
   
   useEffect(() => { modeRef.current = mode; }, [mode]);
@@ -783,8 +793,35 @@ const getMaxCol = row =>
                 resetMovieMode();
 
               } else {
-                setDay(movies[idx].showtimes[timePosRef.current.row].day);
-                setHour(movies[idx].showtimes[timePosRef.current.row].times[timePosRef.current.col]);
+                const movie = movies[idx];
+                const row = timePosRef.current.row;
+                const col = timePosRef.current.col;
+
+                const chosenDay = movie.showtimes[row].day;
+                const { timeStr, screeningId, roomId } = readTimeEntry(movie.showtimes[row].times[col]);
+
+                // Aggiorna UI
+                setDay(chosenDay);
+                setHour(timeStr);
+                if (roomId != null) setSelectedCinemaHall(roomId);
+
+                try {
+                  // Se lo screeningId non è già disponibile, risolvi via endpoint
+                  let sid = screeningId;
+                  if (!sid) {
+                    const { screeningId: resolvedId, roomId: resolvedRoom } =
+                      await api.resolveScreening({ title: movie.title, day: chosenDay, time: timeStr });
+                    sid = resolvedId;
+                    if (resolvedRoom != null) setSelectedCinemaHall(resolvedRoom);
+                  }
+
+                  // Carica layout
+                  const grid = await api.getLayout(sid);
+                  setFetchedLayout(grid);
+                } catch (e) {
+                  console.warn("Resolve/layout failed, using local layout fallback:", e);
+                  setFetchedLayout(null);
+                }
 
                 resetSeatMode();
               }
@@ -967,28 +1004,40 @@ const getMaxCol = row =>
     };
   }, [model, cameraActive]);
 
-  const onSelectTime = ({ row, col }) => {
-    //console.log('clicked time:', { row, col });
+  const onSelectTime = async ({ row, col }) => {
+    if (gestureMode || voiceMode) return;
 
-    // non reagire se siamo in modalità gesture o voice
-    if (!gestureMode && !voiceMode) {
-      // aggiorna subito lo stato
-      setTimePos({ row, col });
+    setTimePos({ row, col });
 
-      const idx = selectedIndexRef.current;
-      const showtimes = movies[idx].showtimes;
+    const idx = selectedIndexRef.current;
+    const show = movies[idx].showtimes[row];
 
-      // se siamo sulla riga “back”
-      if (row === showtimes.length) {
-        resetMovieMode();
-        return;
+    // if (row === showtimes.length) {
+    //   resetMovieMode();
+    //   return;
+    // }
+    const { timeStr, screeningId, roomId } = readTimeEntry(show.times[col]);
+
+    setDay(show.day);
+    setHour(timeStr);
+    if (roomId != null) setSelectedCinemaHall(roomId);
+
+    try {
+      let sid = screeningId;
+      if (!sid) {
+        const { screeningId: resolvedId, roomId: resolvedRoom } =
+          await api.resolveScreening({ title: movies[idx].title, day: show.day, time: timeStr });
+        sid = resolvedId;
+        if (resolvedRoom != null) setSelectedCinemaHall(resolvedRoom);
       }
-
-      // altrimenti aggiorna giorno e ora, poi vai a SEAT
-      setDay(showtimes[row].day);
-      setHour(showtimes[row].times[col]);
-      resetSeatMode();
+      const grid = await api.getLayout(sid);
+      setFetchedLayout(grid);
+    } catch (e) {
+      console.warn("Resolve/layout failed, using local layout:", e);
+      setFetchedLayout(null);
     }
+
+    resetSeatMode();
   };
 
   // SCROLL TO MOVIE FUNCTION
@@ -1028,16 +1077,43 @@ const getMaxCol = row =>
     gestureBuf.current = [];
   }
 
+  // looks for screening id if not found, this is used for obtaining grid layout from backend
+  async function resolveLayout(title, day, time, screeningId = null, roomId = null) {
+    try {
+      let sid = screeningId;
+      if (!sid) {
+        const res = await api.resolveScreening({ title, day, time });
+        sid = res.screeningId;
+        if (res.roomId != null) setSelectedCinemaHall(res.roomId);
+      } else if (roomId != null) {
+        setSelectedCinemaHall(roomId);
+      }
+
+      const grid = await api.getLayout(sid);
+      setFetchedLayout(grid);
+      return true;
+    } catch (e) {
+        console.warn("resolveLayout failed:", e);
+        setFetchedLayout(null);
+      return false;
+    }
+  }
+
   function resetTimeMode() {
     setMode(MODE.TIME);
     setTimePos({row: null, col: null});
     setTotalPrice(null);
+    setFetchedLayout(null);
   }
 
   function resetMovieMode() {
     setMode(MODE.MOVIE);
     setTimePos({row: null, col: null});
     setTotalPrice(null);
+    setFetchedLayout(null);
+    // reset index only if not in gesture mode
+    setMovieIndex(0);
+    selectedIndexRef.current = 0;
   }
 
   function resetSeatMode() {
@@ -1046,13 +1122,84 @@ const getMaxCol = row =>
     setSeatPos({ row: null, col: null });
     setTotalPrice(null);
   }
-  // function utility for movieSelector when using mouse and clicking a time
-  function onSelectMovieTime(day, time) {
-      setDay(day);
-      setHour(time);
 
-      resetSeatMode();
+  // to find screeningId from movie data
+  function readTimeEntry(entry) {
+    if (!entry) return { timeStr: null, screeningId: null, roomId: null };
+    if (typeof entry === 'string') {
+      return { timeStr: entry, screeningId: null, roomId: null };
+    }
+    if (typeof entry === 'object') {
+      return {
+        timeStr: entry.time ?? null,
+        screeningId: entry.screeningId ?? null,
+        roomId: entry.roomId ?? null,
+      };
+    }
+    return { timeStr: null, screeningId: null, roomId: null };
   }
+
+  // variable to avoid stale response when user click fast on time (hour) of a movie card
+  const lastLayoutReq = useRef(0);
+
+  async function onSelectMovieTime({ movieId, day, time, screeningId, roomId }) {
+    setDay(day);
+    setHour(time);
+
+    try {
+      let sid = screeningId ?? null;
+      let hall = roomId ?? null;
+
+      // server side resolution when some ids are missing
+      if (!sid || !hall) {
+        const resolved = await api.resolveScreening({ movieId, day, time });
+        if (!sid)  sid  = resolved.screeningId;
+        if (!hall) hall = resolved.roomId;
+      }
+
+      if (hall != null) setSelectedCinemaHall(hall);
+
+      const reqId = ++lastLayoutReq.current;
+      const grid = await api.getLayout(sid);
+
+      // the last request "wins"
+      if (reqId !== lastLayoutReq.current) return;
+
+      setFetchedLayout(grid);
+    } catch (e) {
+      console.warn("Resolve/layout failed, using local layout:", e);
+      setFetchedLayout(null);
+    }
+
+    resetSeatMode();
+  }
+
+  // this function adds movieId to each time, this way we completely avoid to have errors on MODE.MOVIE when selecting a time with mouse 
+  // (the bug is caused from onWheel and onClick that makes transition when passing from mouse to gesture mode better)
+  function addMovieIdToTimes(movies) {
+    return (movies || []).map((m, idx) => {
+      const id = m.id ?? idx; // fallback se manca id
+      const showtimes = (m.showtimes || []).map(g => ({
+        ...g,
+        times: (g.times || []).map(t => {
+          if (t && typeof t === 'object') {
+            return { ...t, movieId: t.movieId ?? id };
+          }
+          return { time: String(t || ''), movieId: id };
+        })
+      }));
+      return { ...m, id, showtimes };
+    });
+  }
+
+  // lock on wheel and on click for a small amount of time
+  const selectionLockRef = useRef(false);
+
+  function lockSelection(ms = 350) {
+    selectionLockRef.current = true;
+    setTimeout(() => { selectionLockRef.current = false; }, ms);
+  }
+
 
   function getTitle() {
     switch(mode) {
@@ -1072,7 +1219,7 @@ const getMaxCol = row =>
 
   return (
     <div className="flex flex-col h-screen p-4">
-      <h1 className="text-[1.00rem] md:text-[1.75rem] font-bold mb-4 text-center">
+      <h1 className="text-[1.00rem] md:text-[1.15rem] font-bold mb-4 text-center">
         {getTitle()}
       </h1>
 
@@ -1107,14 +1254,17 @@ const getMaxCol = row =>
               gestureMode={gestureMode}
               voiceMode={voiceMode}
               selectedIndex={selectedIndex}
-              onSelectMovie={(idx) => {
+              onSelectMovie={(movieId) => {
+                if (selectionLockRef.current) return; // avoid on wheel/hover on transition
                 if(!gestureMode && !voiceMode) {
-                  setMovieIndex(idx);
+                  setMovieIndex(movieId);
                 }
               }}
-              onSelectTime={(day, time) => {
-                if(!gestureMode && !voiceMode)
-                  onSelectMovieTime(day, time)
+              onSelectTime={({ movieId, day, time, screeningId, roomId }) => {
+                lockSelection(); // block hover/wheel for ~350ms
+                if (!gestureMode && !voiceMode) {
+                  onSelectMovieTime({ movieId, day, time, screeningId, roomId });
+                }
               }}
           />
         )} {mode === MODE.TIME && (
