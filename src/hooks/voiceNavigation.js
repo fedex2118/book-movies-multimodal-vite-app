@@ -9,15 +9,24 @@ const MOVIE_CMD_REGEX = /^(?:search|find|look for|locate|get)\s+(?:me\s+)?(?:(?:
 // REGEX MODE MOVIE
 // groups: 1=movie, 2=time, 3=day (optional)
 export const MOVIE_AT_TIME_OPTIONAL_DAY =
-/^(?:choose|select|pick|set|book|reserve)\s+(?:a|the\s+)?(?:movie\s+)?(.+?)\s+(?:after|at\s+(?:time\s+)?)((?:[01]?\d|2[0-3])[:.][0-5]\d|(?:[01]?\d|2[0-3])(?:\s*h)?|(?:0?\d|1[0-2])(?::[0-5]\d)?\s*(?:a\.?m\.?|p\.?m\.?))(?:\s+on\s+(.+))?$/i
+/^(?:choose|select|pick|set|book|reserve)\s+(?:a|the\s+)?(?:movie\s+)?(.+?)\s+(?:after|at\s+(?:the\s+)?(?:time\s+)?)((?:[01]?\d|2[0-3])[:.][0-5]\d|(?:[01]?\d|2[0-3])(?:\s*h)?|(?:0?\d|1[0-2])(?::[0-5]\d)?\s*(?:a\.?m\.?|p\.?m\.?))(?:\s+on\s+(.+))?$/i;
 
 // groups: 1=movie, 2=day, 3=time
 const MOVIE_ON_DAY_AT_TIME =
-/^(?:choose|select|pick|set|book|reserve)\s+(?:a|the\s+)?(?:movie\s+)?(.+?)\s+on\s+(.+?)\s+(?:after|at\s+)?((?:[01]?\d|2[0-3])[:.][0-5]\d|(?:[01]?\d|2[0-3])(?:\s*h)?|(?:0?\d|1[0-2])(?::[0-5]\d)?\s*(?:a\.?m\.?|p\.?m\.?))$/i;
+/^(?:choose|select|pick|set|book|reserve)\s+(?:a|the\s+)?(?:movie\s+)?(.+?)\s+on\s+(.+?)\s+(?:after|at\s+(?:the\s+)?(?:time\s+)?)((?:[01]?\d|2[0-3])[:.][0-5]\d|(?:[01]?\d|2[0-3])(?:\s*h)?|(?:0?\d|1[0-2])(?::[0-5]\d)?\s*(?:a\.?m\.?|p\.?m\.?))$/i;
 
 // groups: 1=time, 2=day (optional), 3=movie
 const TIME_FIRST_CMD =
-/^(?:choose|select|pick|set|book|reserve)\s+(?:a|the\s+)?(?:time\s+)?((?:[01]?\d|2[0-3])[:.][0-5]\d|(?:[01]?\d|2[0-3])(?:\s*h)?|(?:0?\d|1[0-2])(?::[0-5]\d)?\s*(?:a\.?m\.?|p\.?m\.?))(?:\s+on\s+(.+?))?\s+(?:for\s+)?(?:the\s+)?(?:movie\s+)?(.+)$/i
+/^(?:choose|select|pick|set|book|reserve)\s+(?:a|the\s+)?(?:time\s+)?((?=\d)(?:[01]?\d|2[0-3])[:.][0-5]\d|(?=\d)(?:[01]?\d|2[0-3])(?:\s*h)?|(?=\d)(?:0?\d|1[0-2])(?::[0-5]\d)?\s*(?:a\.?m\.?|p\.?m\.?))(?:\s+on\s+(.+?))?\s+(?:for\s+)?(?:the\s+)?(?:movie\s+)?(.+)$/i;
+
+
+// "book current [at TIME] [on DAY?]"  → groups: 1=time, 2=day (optional)
+const BOOK_CURRENT_AT_TIME_OPTIONAL_DAY =
+/^(?:choose|select|pick|set|book|reserve|confirm|go)\s+(?:the\s+)?current(?:\s+(?:selection|index|movie))?\s+(?:after|at\s+(?:the\s+)?(?:time\s+)?)((?:[01]?\d|2[0-3])[:.][0-5]\d|(?:[01]?\d|2[0-3])[0-5]\d|(?:[01]?\d|2[0-3])(?:\s*h)?|(?:0?\d|1[0-2])(?::(?:[0-5]\d))?\s*(?:a\.?m\.?|p\.?m\.?))(?:\s+on\s+(.+))?$/i;
+
+// "book current [on DAY] at TIME"     → groups: 1=day, 2=time
+const BOOK_CURRENT_ON_DAY_AT_TIME =
+/^(?:choose|select|pick|set|book|reserve|confirm|go)\s+(?:the\s+)?current(?:\s+(?:selection|index|movie))?\s+on\s+(.+?)\s+(?:after|at\s+(?:the\s+)?(?:time\s+)?)((?:[01]?\d|2[0-3])[:.][0-5]\d|(?:[01]?\d|2[0-3])[0-5]\d|(?:[01]?\d|2[0-3])(?:\s*h)?|(?:0?\d|1[0-2])(?::[0-5]\d)?\s*(?:a\.?m\.?|p\.?m\.?))$/i;
 
 // "book current", "book current selection/index/movie", for multiple modes interaction
 const BOOK_CURRENT_OPTIONAL_TIME =
@@ -128,6 +137,58 @@ export default function useVoiceNavigation({
     // voice commands
     // COMMANDS FOR MODE.MOVIE
     const movieModeCommands = [
+    {
+        command: BOOK_CURRENT_ON_DAY_AT_TIME, // groups: 1=day, 2=time
+        matchInterim: false,
+        callback: (daySpoken, timeSpoken) => runOnce(() => {
+        if (modeRef.current !== MODE.MOVIE) return;
+
+        const idx = movieIdxRef.current;
+        if (idx === -1) {
+            speak('No current movie selected.');
+            logResult('Book current on DAY at TIME → ❌ no current selection');
+            resetTranscript();
+            return;
+        }
+
+        const time24 = normalizeTimeTo24h(timeSpoken);
+        if (!time24) {
+            speak('Time not recognized, could you repeat please?');
+            logResult(`Book current on "${daySpoken}": time "${timeSpoken}" not recognized → ❌`);
+            resetTranscript();
+            return;
+        }
+
+        const dayClean = daySpoken ? sanitizeDayHeard(daySpoken) : null;
+        handleTimeToSeat({ idx, time: time24, daySpoken: dayClean });
+        })
+    },
+    {
+        command: BOOK_CURRENT_AT_TIME_OPTIONAL_DAY, // groups: 1=time, 2=day?
+        matchInterim: false,
+        callback: (timeSpoken, maybeDay) => runOnce(() => {
+        if (modeRef.current !== MODE.MOVIE) return;
+
+        const idx = movieIdxRef.current;
+        if (idx === -1) {
+            speak('No current movie selected.');
+            logResult('Book current at TIME → ❌ no current selection');
+            resetTranscript();
+            return;
+        }
+
+        const time24 = normalizeTimeTo24h(timeSpoken);
+        if (!time24) {
+            speak('Time not recognized, could you repeat please?');
+            logResult(`Book current at: time "${timeSpoken}" not recognized → ❌`);
+            resetTranscript();
+            return;
+        }
+
+        const dayClean = maybeDay ? sanitizeDayHeard(maybeDay) : null;
+        handleTimeToSeat({ idx, time: time24, daySpoken: dayClean });
+        })
+    },
     {
     // "book current [at 9pm]" / "book current selection at 21:00" / "book current movie"
     command: BOOK_CURRENT_OPTIONAL_TIME,
