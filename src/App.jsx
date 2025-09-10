@@ -35,106 +35,6 @@ import { api } from "./hooks/api"
 
 const currency = "€";
 
-/*const movies = [
-  {
-    title: "Lilo & Stitch",
-    altTitles: ["Lilo and Stitch", "Lilo Stitch"],
-    description:
-      "Dopo che la Terra è diventata inabitabile a causa della mancanza di ossigeno...",
-    director: "Dean Fleischer Camp",
-    cast: "Sydney Agudong, Zach Galifianakis, Maia Kealoha, Billy Magnussen, Tia Carrere, Chris Sanders, Amy Hill, Jason Scott Lee",
-    duration: 108,
-    showtimes: [
-      { day: "Monday 15th June", times: ["18:00", "21:30"] },
-      { day: "Tuesday 16th June", times: ["23:00"] },
-      { day: "Thursday 18th June", times: ["18:00", "19:00", "21:00"] },
-      { day: "Friday 19th June", times: ["17:00", "18:00"] },
-      { day: "Saturday 20th June", times: ["12:00", "21:00"] }
-    ],
-    image: `${MOVIES_BASE_PATH}lilo-and-stitch.jpeg`
-  },
-  {
-    title: "ADO SPECIAL LIVE ‘SHINZOU’",
-    altTitles: ["ADO LIVE", "SHINZOU", "SHINSOU", "ADDO"],
-    description: "Uno dei live più importanti della nuova scena musicale giapponese...",
-    director: "Ruriko Kano, Muneyoshi Nowara",
-    cast: "Ado, Takafumi Koukei, Naoki Kobayashi, Ryunosuke Morita, Sara Wakui, Shigeo Aoki",
-    duration: 140,
-    showtimes: [
-      { day: "Monday 15 June", times: ["18:00", "21:00"] },
-      { day: "Tuesday 16th June", times: ["23:00"] },
-      { day: "Thursday 18th June", times: ["18:00", "19:00", "21:00"] },
-      { day: "Friday 19th June", times: ["17:00", "18:00"] }
-    ],
-    image: `${MOVIES_BASE_PATH}ado-special-live.jpg`,
-  },
-  {
-    title: "ALBATROSS",
-    altTitles: [],
-    description: "Uno dei live più importanti della nuova scena musicale giapponese...",
-    director: "Giulio Base",
-    cast: "Francesco Centorame, Michele Favaro, Linda Pani, Tommaso Santini, Luca Predonzani, Gianna Paola Scaffidi, Giancarlo Giannini, Giulio Base, Paolo Rozzi",
-    duration: 90,
-    showtimes: [
-      { day: "Monday 25 Luglio", times: ["09:00", "11:00"] },
-      { day: "Tuesday 26 Luglio", times: ["13:00"] }
-    ],
-    image: `${MOVIES_BASE_PATH}albatross.jpg`
-  },
-  {
-    title: "DRAGON TRAINER",
-    altTitles: [],
-    description: "Uno dei live più importanti della nuova scena musicale giapponese...",
-    director: "Dean DeBlois",
-    cast: "Mason Thames, Nico Parker, Gerard Butler, Julian Dennison, Nick Frost, Bronwyn James, Gabriel Howell, Ruth Codd",
-    duration: 125,
-    showtimes: [
-      { day: "Monday 15 June", times: ["18:00", "21:00"] },
-      { day: "Tuesday 16 June", times: ["23:00"] }
-    ],
-    image: `${MOVIES_BASE_PATH}dragon-trainer.jpg`
-  },
-  {
-    title: "ELIO",
-    altTitles: [],
-    description: "Uno dei live più importanti della nuova scena musicale giapponese...",
-    director: "Adrian Molina, Domee Shi, Madeline Sharafian",
-    cast: "Yonas Kibreab, Remy Edgerly, Brad Garrett, Zoe Saldana, Jameela Jamil, Brendan Hunt, Matthias Schweighöfer, Shirley Henderson",
-    duration: 99,
-    showtimes: [
-      { day: "Monday 15 June", times: ["18:00", "21:00", "23:00"] },
-      { day: "Tuesday 16 June", times: ["23:00"] }
-    ],
-    image: `${MOVIES_BASE_PATH}elio.jpg`
-  },
-  {
-    title: "F1",
-    altTitles: [],
-    description: "Uno dei live più importanti della nuova scena musicale giapponese...",
-    director: "Joseph Kosinski",
-    cast: "Brad Pitt, Kerry Condon, Damson Idris, Javier Bardem, Lewis Hamilton, Simone Ashley, Callie Cooke, Tobias Menzies",
-    duration: 155,
-    showtimes: [
-      { day: "Monday 15 June", times: ["18:00", "21:00"] },
-      { day: "Tuesday 16 June", times: ["23:00"] }
-    ],
-    image: `${MOVIES_BASE_PATH}f1.jpg`
-  },
-  {
-    title: "Happy Holidays",
-    altTitles: [],
-    description: "Uno dei live più importanti della nuova scena musicale giapponese...",
-    director: "Scandar Copti",
-    cast: "Manar Shehab, Wafaa Aoun, Merav Mamorsky, Toufic Danial",
-    duration: 124,
-    showtimes: [
-      { day: "Monday 15 June", times: ["18:00", "21:00"] },
-      { day: "Tuesday 16 June", times: ["23:00"] }
-    ],    
-    image: `${MOVIES_BASE_PATH}happy-holidays.jpg`
-  },
-];*/
-
 const INITIAL_MOVIES = [
   {
     title: "Loading title",
@@ -322,6 +222,8 @@ export default function App() {
 
   const [model, setModel] = useState(null);
 
+  useEffect(() => { modeRef.current = mode; }, [mode]);
+
   const lastActionRef = useRef(0); // timestamp last gesture used
   const ACTION_DELAY   = 350; // ms to delay a gesture action
 
@@ -413,6 +315,8 @@ export default function App() {
   const GESTURE_WINDOW = 5;
   const gestureBuf = useRef([]);   // ci metti dentro solo LABEL_UP o LABEL_DOWN (o null)
 
+  const [gestureMode, setGestureMode] = useState(false);
+
   const {
     transcript,
     listening,
@@ -442,15 +346,9 @@ export default function App() {
     setSeatPos,
     handleBookingSummaryConfirm,
     resolveLayout,
-    readTimeEntry
+    readTimeEntry,
+    gestureMode
   });
-  
-  useEffect(() => { modeRef.current = mode; }, [mode]);
-
-  // useEffect(() => {dayRef.current = day;}, [day])
-  // useEffect(() => {hourRef.current = hour;}, [hour])
-
-  const [gestureMode, setGestureMode] = useState(false);
 
   // a handlerRef is used to contain a reference to components functions always updated
   // this way App.jsx is always synched with the updated values
@@ -525,13 +423,13 @@ export default function App() {
     
     if(gestureMode || voiceMode) return;
 
-    // Y del cursore nella viewport
+    // Y of the cursor in the viewport
     const mouseY = e.clientY;
-    // prendi tutte le card renderizzate
+    // take all cards rendered
     const cards = containerRef.current.querySelectorAll('.movie-card');
     for (let i = 0; i < cards.length; i++) {
       const rect = cards[i].getBoundingClientRect();
-      // se il puntatore è dentro il bounding di questa card...
+      // if curor is inside boundary of this card...
       if (mouseY >= rect.top && mouseY <= rect.bottom) {
         setMovieIndex(i)
         break;

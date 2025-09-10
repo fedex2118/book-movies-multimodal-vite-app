@@ -19,6 +19,10 @@ const MOVIE_ON_DAY_AT_TIME =
 const TIME_FIRST_CMD =
 /^(?:choose|select|pick|set|book|reserve)\s+(?:a|the\s+)?(?:time\s+)?((?:[01]?\d|2[0-3])[:.][0-5]\d|(?:[01]?\d|2[0-3])(?:\s*h)?|(?:0?\d|1[0-2])(?::[0-5]\d)?\s*(?:a\.?m\.?|p\.?m\.?))(?:\s+on\s+(.+?))?\s+(?:for\s+)?(?:the\s+)?(?:movie\s+)?(.+)$/i
 
+// "book current", "book current selection/index/movie", for multiple modes interaction
+const BOOK_CURRENT_OPTIONAL_TIME =
+/^(?:choose|select|pick|set|book|reserve|confirm|go)\s+(?:the\s+)?current(?:\s+(?:selection|index|movie))?(?:\s+(?:after|at\s+(?:time\s+)?)((?:[01]?\d|2[0-3])[:.][0-5]\d|(?:[01]?\d|2[0-3])[0-5]\d|(?:[01]?\d|2[0-3])(?:\s*h)?|(?:0?\d|1[0-2])(?::(?:[0-5]\d))?\s*(?:a\.?m\.?|p\.?m\.?)?))?\s*$/i;
+
 // time selection regex
 const BOOK_NO_TIME_CMD =
 /^(?:book|reserve|schedule|set|choose|select)\s+(?:a|the\s+)?(?:movie\s+)?(.+?)(?:\s+on\s+(.+))?$/i;
@@ -82,7 +86,8 @@ export default function useVoiceNavigation({
     setSeatPos,
     handleBookingSummaryConfirm,
     resolveLayout,
-    readTimeEntry
+    readTimeEntry,
+    gestureMode
     }) {
     const [voiceMode, setVoiceMode] = useState(false);
     // indexCurrentMovie
@@ -123,6 +128,50 @@ export default function useVoiceNavigation({
     // voice commands
     // COMMANDS FOR MODE.MOVIE
     const movieModeCommands = [
+    {
+    // "book current [at 9pm]" / "book current selection at 21:00" / "book current movie"
+    command: BOOK_CURRENT_OPTIONAL_TIME,
+    matchInterim: false,
+    callback: (timeSpoken) => runOnce(() => {
+        if (modeRef.current !== MODE.MOVIE) return;
+
+        if (!gestureMode) {
+            speak('Enable the camera to select movies with your hand');
+            logResult('Book current → ❌ gesture mode disabled');
+            resetTranscript();
+            return;
+        }
+
+        const idx = movieIdxRef.current;
+        if (idx === -1) {
+            speak('No current movie selected.');
+            logResult('Book current → ❌ no current selection');
+            resetTranscript();
+            return;
+        }
+
+        // se NON c'è orario → vai alla selezione dell’orario per il film corrente
+        if (!timeSpoken) {
+            setMovieIndex(idx);
+            resetTimeMode();
+            speak(`Choose a time for ${movies[idx].title}`);
+            logResult(`Book current "${movies[idx].title}" → ▶ time selection`);
+            resetTranscript();
+            return;
+        }
+
+        // se c'è orario → prova ad andare direttamente a SEAT (riusa handleTimeToSeat)
+        const time24 = normalizeTimeTo24h(timeSpoken);
+        if (!time24) {
+            speak(`Time not recognized, could you repeat please?`);
+            logResult(`Book current: time "${timeSpoken}" not recognized → ❌`);
+            resetTranscript();
+            return;
+        }
+
+        handleTimeToSeat({ idx, time: time24, daySpoken: null });
+        })
+    },
     {
         // TIME first: "select 9 pm on monday for movie ..."
         command: TIME_FIRST_CMD,

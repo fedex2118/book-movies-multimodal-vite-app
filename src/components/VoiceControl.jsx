@@ -29,19 +29,22 @@ export default function VoiceControl({
       {mode === MODE.MOVIE && (
         <div className="mt-2 mb-4 w-full text-center text-gray-600 text-sm">
           🎤 Use voice to find/book a movie: "find movie abc", "book movie xyz at time 15 on 16th September", "book xyz", ...
+          You can also use voice and gestures together: "book current selection/movie at 9pm"
         </div>
       )}
       {mode === MODE.TIME && (
         <div className="mt-2 mb-4 w-full text-center text-gray-600 text-sm">
           🎤 Use voice to choose/select/pick/book the day and time: "choose Monday 15th June at 18", "book 18 on 19th October", ...
-          Or say "go back" to go back to movie selection
+          Or say "go back" to go back to movie selection<br/>
+          You can also use voice and gestures together: "choose current time/selection", "pick current time/selection", ...
         </div>
       )}
       {mode === MODE.SEAT && (
         <div className="mt-2 mb-4 w-full text-center text-gray-600 text-sm">
           🎤 Use voice to select/deselect seats: "select A1 E5", "deselect A1 and G4", ...
           Say "go back" to go back to time selection or say "go back to movie selection" to go back to movie selection<br/>
-          If you want to confirm seats chosen you can say "confirm"
+          If you want to confirm seats chosen you can say "confirm"<br/>
+          You can also use voice and gestures together: "select current seat", "deselect current", "pick current and confirm", ...
         </div>
       )}
       {mode === MODE.BOOKING_SUMMARY && (
