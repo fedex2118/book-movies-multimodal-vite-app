@@ -4,20 +4,21 @@ import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognitio
 import { MODE } from "../constants/modes";
 
 // regex patterns for voice mode
-const MOVIE_CMD_REGEX = /^(?:search|find|look for|locate|get)\s+(?:me\s+)?(?:(?:a|the)\s+)?(?:movie\s+)?(?:(?:called|named)(?:\s+as)?\s+)?(.+)$/i;
 
-// REGEX MODE MOVIE
+// --- MODE.MOVIE ---
+const MOVIE_CMD_REGEX = /^(?!.*\bcurrent\b)(?:search|find|look for|locate|get)\s+(?:me\s+)?(?:(?:a|the)\s+)?(?:movie\s+)?(?:(?:called|named)(?:\s+as)?\s+)?(.+)$/i;
+
 // groups: 1=movie, 2=time, 3=day (optional)
 export const MOVIE_AT_TIME_OPTIONAL_DAY =
-/^(?:choose|select|pick|set|book|reserve)\s+(?:a|the\s+)?(?:movie\s+)?(.+?)\s+(?:after|at\s+(?:the\s+)?(?:time\s+)?)((?:[01]?\d|2[0-3])[:.][0-5]\d|(?:[01]?\d|2[0-3])(?:\s*h)?|(?:0?\d|1[0-2])(?::[0-5]\d)?\s*(?:a\.?m\.?|p\.?m\.?))(?:\s+on\s+(.+))?$/i;
+/^(?!.*\bcurrent\b)(?:choose|select|pick|set|book|reserve)\s+(?:a|the\s+)?(?:movie\s+)?(.+?)\s+(?:after|at\s+(?:the\s+)?(?:time\s+)?)((?:[01]?\d|2[0-3])[:.][0-5]\d|(?:[01]?\d|2[0-3])(?:\s*h)?|(?:0?\d|1[0-2])(?::[0-5]\d)?\s*(?:a\.?m\.?|p\.?m\.?))(?:\s+on\s+(.+))?$/i;
 
 // groups: 1=movie, 2=day, 3=time
 const MOVIE_ON_DAY_AT_TIME =
-/^(?:choose|select|pick|set|book|reserve)\s+(?:a|the\s+)?(?:movie\s+)?(.+?)\s+on\s+(.+?)\s+(?:after|at\s+(?:the\s+)?(?:time\s+)?)((?:[01]?\d|2[0-3])[:.][0-5]\d|(?:[01]?\d|2[0-3])(?:\s*h)?|(?:0?\d|1[0-2])(?::[0-5]\d)?\s*(?:a\.?m\.?|p\.?m\.?))$/i;
+/^(?!.*\bcurrent\b)(?:choose|select|pick|set|book|reserve)\s+(?:a|the\s+)?(?:movie\s+)?(.+?)\s+on\s+(.+?)\s+(?:after|at\s+(?:the\s+)?(?:time\s+)?)((?:[01]?\d|2[0-3])[:.][0-5]\d|(?:[01]?\d|2[0-3])(?:\s*h)?|(?:0?\d|1[0-2])(?::[0-5]\d)?\s*(?:a\.?m\.?|p\.?m\.?))$/i;
 
 // groups: 1=time, 2=day (optional), 3=movie
 const TIME_FIRST_CMD =
-/^(?:choose|select|pick|set|book|reserve)\s+(?:a|the\s+)?(?:time\s+)?((?=\d)(?:[01]?\d|2[0-3])[:.][0-5]\d|(?=\d)(?:[01]?\d|2[0-3])(?:\s*h)?|(?=\d)(?:0?\d|1[0-2])(?::[0-5]\d)?\s*(?:a\.?m\.?|p\.?m\.?))(?:\s+on\s+(.+?))?\s+(?:for\s+)?(?:the\s+)?(?:movie\s+)?(.+)$/i;
+/^(?!.*\bcurrent\b)(?:choose|select|pick|set|book|reserve)\s+(?:a|the\s+)?(?:time\s+)?((?=\d)(?:[01]?\d|2[0-3])[:.][0-5]\d|(?=\d)(?:[01]?\d|2[0-3])(?:\s*h)?|(?=\d)(?:0?\d|1[0-2])(?::[0-5]\d)?\s*(?:a\.?m\.?|p\.?m\.?))(?:\s+on\s+(.+?))?\s+(?:for\s+)?(?:the\s+)?(?:movie\s+)?(.+)$/i;
 
 
 // "book current [at TIME] [on DAY?]"  → groups: 1=time, 2=day (optional)
@@ -34,39 +35,53 @@ const BOOK_CURRENT_OPTIONAL_TIME =
 
 // time selection regex
 const BOOK_NO_TIME_CMD =
-/^(?:book|reserve|schedule|set|choose|select)\s+(?:a|the\s+)?(?:movie\s+)?(.+?)(?:\s+on\s+(.+))?$/i;
+/^(?!.*\bcurrent\b)(?:book|reserve|schedule|set|choose|select)\s+(?:a|the\s+)?(?:movie\s+)?(.+?)(?:\s+on\s+(.+))?$/i;
 
-// REGEX MODE TIME
+// --- REGEX MODE TIME ---
+// "select current", "choose current", "pick current time"
+const TIME_CURRENT_OPTIONAL_DAY_CMD =
+/^(?:select|choose|pick|set|book|reserve|confirm)\s+(?:the\s+)?(?:current(?:\s+time)?)?(?:\s+on\s+(.+))?$/i;
+
+const DAY_THEN_CURRENT_CMD =
+/^(?:select|choose|pick|set|book|reserve|confirm)\s+(?:on\s+)?(.+?)\s+(?:the\s+)?(?:current(?:\s+time)?)$/i;
+
 // groups: 1=time, 2=day (optional)
 const TIME_ONLY_CMD =
-/^(?:show|choose|select|pick|set|book|reserve)\s+(?:(?:a|the|at)\s+)?(?:time\s+)?((?:[01]?\d|2[0-3])[:.][0-5]\d|(?:[01]?\d|2[0-3])[0-5]\d|(?:[01]?\d|2[0-3])(?:\s*h)?|(?:0?\d|1[0-2])(?::(?:[0-5]\d))?\s*(?:a\.?m\.?|p\.?m\.?)?)(?:\s+on\s+(.+))?$/i;
+/^(?!.*\bcurrent\b)(?:show|choose|select|pick|set|book|reserve)\s+(?:(?:a|the|at)\s+)?(?:time\s+)?((?:[01]?\d|2[0-3])[:.][0-5]\d|(?:[01]?\d|2[0-3])[0-5]\d|(?:[01]?\d|2[0-3])(?:\s*h)?|(?:0?\d|1[0-2])(?::(?:[0-5]\d))?\s*(?:a\.?m\.?|p\.?m\.?)?)(?:\s+on\s+(.+))?$/i;
 
 
 // (es. "choose 21th June at 9pm")
 // groups: 1=day, 2=time
 const DAY_AT_TIME_NO_MOVIE =
-/^(?:show|choose|select|pick|set|book|reserve)\s+(.+?)\s*(?:\s+(?:a|the|at|after))?\s*((?:[01]?\d|2[0-3])[:.][0-5]\d|(?:[01]?\d|2[0-3])(?:\s*h)?|(?:0?\d|1[0-2])(?::[0-5]\d)?\s*(?:a\.?m\.?|p\.?m\.?))$/i;
+/^(?!.*\bcurrent\b)(?:show|choose|select|pick|set|book|reserve)\s+(.+?)\s*(?:\s+(?:a|the|at|after))?\s*((?:[01]?\d|2[0-3])[:.][0-5]\d|(?:[01]?\d|2[0-3])(?:\s*h)?|(?:0?\d|1[0-2])(?::[0-5]\d)?\s*(?:a\.?m\.?|p\.?m\.?))$/i;
 
-// REGEX SEAT MODE
+// --- REGEX MODE SEAT ---
 // SELECT seats (movie/seat(s) optional; list “A1,A2  A3”/“A1 and A2”)
 const SELECT_SEATS_CMD =
-/^(?:choose|pick|select|set)\s+(?:a|the\s+)?(?:movie\s+)?(?:seat|seats)?\s*([A-Za-z]{1,2}\s*\d{1,2}(?:\s*(?:,|\band\b)?\s*[A-Za-z]{1,2}\s*\d{1,2})*)$/i;
+/^(?!.*\bcurrent\b)(?:choose|pick|select|set)\s+(?:a|the\s+)?(?:movie\s+)?(?:seat|seats)?\s*([A-Za-z]{1,2}\s*\d{1,2}(?:\s*(?:,|\band\b)?\s*[A-Za-z]{1,2}\s*\d{1,2})*)$/i;
 
 // DESELECT seats (synonim + optional)
 const DESELECT_SEATS_CMD =
-/^(?:deselect|disconnect|remove|cancel|unselect|unpick)\s+(?:a|the\s+)?(?:movie\s+)?(?:seat|seats)?\s*([A-Za-z]{1,2}\s*\d{1,2}(?:\s*(?:,|\band\b)?\s*[A-Za-z]{1,2}\s*\d{1,2})*)$/i;
+/^(?!.*\bcurrent\b)(?:deselect|disconnect|remove|cancel|unselect|unpick)\s+(?:a|the\s+)?(?:movie\s+)?(?:seat|seats)?\s*([A-Za-z]{1,2}\s*\d{1,2}(?:\s*(?:,|\band\b)?\s*[A-Za-z]{1,2}\s*\d{1,2})*)$/i;
+
+const SEAT_SELECT_CURRENT_CMD =
+/^(?:select|choose|pick|set|book|confirm)\s+(?:the\s+)?(?:current(?:\s+seat)?)$/i;
+
+// MODE.SEAT — DESELECT current
+const SEAT_DESELECT_CURRENT_CMD =
+/^(?:deselect|remove|cancel|unselect|unpick)\s+(?:the\s+)?(?:current(?:\s+seat)?)$/i;
 
 // REGEX CONFIRM
 // CONFIRM command
-const CONFIRM_CMD = /^(?:confirm|ok|okay|proceed|continue)(?:\s+(?:selection|seats?|booking|reservation))?$/i;
+const CONFIRM_CMD = /^(?!.*\bcurrent\b)(?:confirm|ok|okay|proceed|continue)(?:\s+(?:selection|seats?|booking|reservation))?$/i;
 
 // REGEX GO BACK
 // BACK command
-const GO_BACK_CMD = /^(?:back|go back|previous|cancel|exit)$/i;
+const GO_BACK_CMD = /^(?!.*\bcurrent\b)(?:back|go back|previous|cancel|exit)$/i;
 
-const GO_BACK_MOVIE_CMD = /^(?:go\s*back|back|return)\s*(?:to|towards)?\s*(?:the\s*)?(?:movie(?:\s*(?:list|selection|mode))?|movies?)$/i;
-const GO_BACK_TIME_CMD  = /^(?:go\s*back|back|return)\s*(?:to|towards)?\s*(?:the\s*)?(?:time(?:\s*(?:selection|mode|list))?|times?)$/i;
-const GO_BACK_SEAT_CMD  = /^(?:go\s*back|back|return)\s*(?:to|towards)?\s*(?:the\s*)?(?:seat(?:\s*(?:selection|mode|list))?|seats?)$/i;
+const GO_BACK_MOVIE_CMD = /^(?!.*\bcurrent\b)(?:go\s*back|back|return)\s*(?:to|towards)?\s*(?:the\s*)?(?:movie(?:\s*(?:list|selection|mode))?|movies?)$/i;
+const GO_BACK_TIME_CMD  = /^(?!.*\bcurrent\b)(?:go\s*back|back|return)\s*(?:to|towards)?\s*(?:the\s*)?(?:time(?:\s*(?:selection|mode|list))?|times?)$/i;
+const GO_BACK_SEAT_CMD  = /^(?!.*\bcurrent\b)(?:go\s*back|back|return)\s*(?:to|towards)?\s*(?:the\s*)?(?:seat(?:\s*(?:selection|mode|list))?|seats?)$/i;
 
 // --- Helpers SEAT MODE ---
 const parseSeatList = (s) =>
@@ -96,7 +111,14 @@ export default function useVoiceNavigation({
     handleBookingSummaryConfirm,
     resolveLayout,
     readTimeEntry,
-    gestureMode
+    gestureMode,
+    timePosRef,
+    seatPosRef,
+    buttonRowRef,
+    backColIndex,
+    confirmColIndex,
+    selectSeat,
+    deselectSeat
     }) {
     const [voiceMode, setVoiceMode] = useState(false);
     // indexCurrentMovie
@@ -143,6 +165,13 @@ export default function useVoiceNavigation({
         callback: (daySpoken, timeSpoken) => runOnce(() => {
         if (modeRef.current !== MODE.MOVIE) return;
 
+        if (!gestureMode) {
+            speak('This voice command works only with camera enabled.');
+            logResult('Book current ignored → ⚠️ gesture mode disabled');
+            resetTranscript();
+            return;
+        }
+
         const idx = movieIdxRef.current;
         if (idx === -1) {
             speak('No current movie selected.');
@@ -168,6 +197,13 @@ export default function useVoiceNavigation({
         matchInterim: false,
         callback: (timeSpoken, maybeDay) => runOnce(() => {
         if (modeRef.current !== MODE.MOVIE) return;
+
+        if (!gestureMode) {
+            speak('This voice command works only with camera enabled.');
+            logResult('Book current ignored → ⚠️ gesture mode disabled');
+            resetTranscript();
+            return;
+        }
 
         const idx = movieIdxRef.current;
         if (idx === -1) {
@@ -197,8 +233,8 @@ export default function useVoiceNavigation({
         if (modeRef.current !== MODE.MOVIE) return;
 
         if (!gestureMode) {
-            speak('Enable the camera to select movies with your hand');
-            logResult('Book current → ❌ gesture mode disabled');
+            speak('This voice command works only with camera enabled.');
+            logResult('Book current ignored → ⚠️ gesture mode disabled');
             resetTranscript();
             return;
         }
@@ -328,6 +364,185 @@ export default function useVoiceNavigation({
         })
     },
     {
+        command: TIME_CURRENT_OPTIONAL_DAY_CMD, // groups: 1=day?
+        matchInterim: false,
+        callback: (maybeDay) => runOnce(async () => {
+        if (modeRef.current !== MODE.TIME) return;
+
+        if (!gestureMode) {
+            speak('This command works only with gestures enabled.');
+            logResult('⚠️ "select current" ignored: gestures disabled');
+            resetTranscript();
+            return;
+        }
+
+        const idx = movieIdxRef.current;
+        if (idx === -1) {
+            speak('No movie selected yet.');
+            logResult('❌ "select current" → no movie selected');
+            resetTranscript();
+            return;
+        }
+
+        const pos = timePosRef?.current || { row: null, col: null };
+        if (pos.row == null || pos.col == null) {
+            speak('No time is focused. Please use index finger to focus a time.');
+            logResult('❌ "select current" → no focused time');
+            resetTranscript();
+            return;
+        }
+
+        const shows = movies[idx]?.showtimes || [];
+        const isGoBack = (shows.length === pos.row); // same logic has for gestures
+
+        if (isGoBack) {
+            // GO BACK
+            resetMovieMode();
+            speak('Going back to movie selection.');
+            logResult('↩ "select current" on Go Back → ▶ movie selection');
+            resetTranscript();
+            return;
+        }
+
+        const row = shows[pos.row];
+        const times = row?.times || [];
+        const entry = times[pos.col];
+
+        if (!row || !entry) {
+            speak('This time is not available.');
+            logResult('❌ "select current" → invalid row/col');
+            resetTranscript();
+            return;
+        }
+
+        // if user says also day verify coerence of the current row
+        if (maybeDay) {
+            const dayHeard = sanitizeDayHeard(maybeDay);
+            const okDay = dayMatchesNormalizedDay(row.day || "", dayHeard);
+            if (!okDay) {
+            speak(`The current focus is not on ${dayHeard}. Please move to that day and try again.`);
+            logResult(`⚠ "select current on ${dayHeard}" → current day is "${row.day || 'unknown'}"`);
+            resetTranscript();
+            return;
+            }
+        }
+
+        const { timeStr, screeningId, roomId } = readTimeEntry(entry);
+        const chosenDay = row.day;
+
+        if (!timeStr) {
+            speak('This time is not valid.');
+            logResult('❌ "select current" → missing timeStr');
+            resetTranscript();
+            return;
+        }
+
+        setDay(chosenDay);
+        setHour(timeStr);
+
+        try {
+            if (typeof resolveLayout === 'function') {
+            await resolveLayout(movies[idx].title, chosenDay, timeStr, screeningId, roomId);
+            }
+        } catch (e) {
+            console.warn('Voice resolveLayout failed, using local layout:', e);
+        }
+
+        resetSeatMode();
+        speak(`Selected ${timeStr} on ${chosenDay} for ${movies[idx].title}.`);
+        logResult(`✅ "select current" → ${timeStr} on ${chosenDay} → ▶ seat selection`);
+        resetTranscript();
+        })
+    },
+    {
+        command: DAY_THEN_CURRENT_CMD, // groups: 1=day
+        matchInterim: false,
+        callback: (daySpoken) => runOnce(async () => {
+        if (modeRef.current !== MODE.TIME) return;
+
+        if (!gestureMode) {
+            speak('This command works only with gestures enabled.');
+            logResult('⚠️ "select current" (day first) ignored: gestures disabled');
+            resetTranscript();
+            return;
+        }
+
+        const idx = movieIdxRef.current;
+        if (idx === -1) {
+            speak('No movie selected yet.');
+            logResult('❌ "select [day] current" → no movie selected');
+            resetTranscript();
+            return;
+        }
+
+        const pos = timePosRef?.current || { row: null, col: null };
+        if (pos.row == null || pos.col == null) {
+            speak('No time is focused. Please use index finger to focus a time.');
+            logResult('❌ "select [day] current" → no focused time');
+            resetTranscript();
+            return;
+        }
+
+        const shows = movies[idx]?.showtimes || [];
+        const isGoBack = (shows.length === pos.row);
+
+        if (isGoBack) {
+            resetMovieMode();
+            speak('Going back to movie selection.');
+            logResult('↩ "select [day] current" on Go Back → ▶ movie selection');
+            resetTranscript();
+            return;
+        }
+
+        const row = shows[pos.row];
+        const times = row?.times || [];
+        const entry = times[pos.col];
+
+        if (!row || !entry) {
+            speak('This time is not available.');
+            logResult('❌ "select [day] current" → invalid row/col');
+            resetTranscript();
+            return;
+        }
+
+        // Verifica che il day parlato corrisponda al current row
+        const dayHeard = sanitizeDayHeard(daySpoken);
+        const okDay = dayMatchesNormalizedDay(row.day || "", dayHeard);
+        if (!okDay) {
+            speak(`The current focus is not on ${dayHeard}. Please move to that day and try again.`);
+            logResult(`⚠ "select ${dayHeard} current" → current day is "${row.day || 'unknown'}"`);
+            resetTranscript();
+            return;
+        }
+
+        const { timeStr, screeningId, roomId } = readTimeEntry(entry);
+        const chosenDay = row.day;
+
+        if (!timeStr) {
+            speak('This time is not valid.');
+            logResult('❌ "select [day] current" → missing timeStr');
+            resetTranscript();
+            return;
+        }
+
+        setDay(chosenDay);
+        setHour(timeStr);
+
+        try {
+            if (typeof resolveLayout === 'function') {
+            await resolveLayout(movies[idx].title, chosenDay, timeStr, screeningId, roomId);
+            }
+        } catch (e) {
+            console.warn('Voice resolveLayout failed, using local layout:', e);
+        }
+
+        resetSeatMode();
+        speak(`Selected ${timeStr} on ${chosenDay} for ${movies[idx].title}.`);
+        logResult(`✅ "select ${dayHeard} current" → ${timeStr} on ${chosenDay} → ▶ seat selection`);
+        resetTranscript();
+        })
+    },
+    {
         // TIME-ONLY (optional day) in MODE.TIME
         command: TIME_ONLY_CMD,
         matchInterim: false,
@@ -403,6 +618,173 @@ export default function useVoiceNavigation({
             resetTimeMode();
             resetTranscript();
         })
+    },
+    // select current seat (voice + gestures)
+    {
+    command: SEAT_SELECT_CURRENT_CMD,
+    matchInterim: false,
+    callback: () => runOnce(() => {
+        if (modeRef.current !== MODE.SEAT) return;
+
+        if (!gestureMode) {
+            speak('This command works only with gestures enabled.');
+            logResult('⚠️ "select current" ignored: gestures disabled');
+            resetTranscript();
+        return;
+        }
+
+        const pos = seatPosRef?.current || { row: null, col: null };
+        const row = pos.row, col = pos.col;
+
+        if (row == null || col == null) {
+            speak('No seat is focused. Please use index finger to point to a seat.');
+            logResult('❌ "select current" → no focused seat');
+            resetTranscript();
+        return;
+        }
+
+        // replicate gestures logic
+        if (buttonRowRef && row === buttonRowRef.current) {
+            if (col === confirmColIndex) {
+                // confirm button → booking summary
+                const total = Number(totalPriceRef?.current) || 0;
+                speak('Seats confirmed. Showing booking summary.');
+                logResult('✅ "select current" on Confirm → ▶ booking summary');
+                if (typeof goToBookingSummary === 'function') {
+                    goToBookingSummary(total);
+                } else {
+                    setMode(MODE.BOOKING_SUMMARY);
+                }
+                resetTranscript();
+                return;
+            }
+            if (col === backColIndex) {
+                // back → TIME
+                resetTimeMode();
+                speak('Going back to time selection.');
+                logResult('↩ "select current" on Back → ▶ time selection');
+                resetTranscript();
+                return;
+            }
+            // if button is at row but is not back/confirm, don't do anything
+            speak('This button is not supported by voice.');
+            logResult('⚠️ "select current" on unsupported button');
+            resetTranscript();
+            return;
+        }
+
+        // else: select current seat
+        // validity checks for current seat ---
+        const code = currentLayout?.[row]?.[col];
+        const seatCode = code ? String(code).toUpperCase() : null;
+
+        if (!seatCode || !validSeatSet.has(seatCode)) {
+            speak('Cannot resolve the current seat.');
+            logResult('❌ "select current" → invalid/missing seat code');
+            resetTranscript();
+            return;
+        }
+
+        // già occupato?
+        if (occupiedSet.has(seatCode)) {
+            speak(`${seatCode} is occupied. Please choose another seat.`);
+            logResult(`⛔ "select current" → ${seatCode} occupied`);
+            resetTranscript();
+            return;
+        }
+
+        // già selezionato?
+        const selectedSet = getSelectedSet();
+        if (selectedSet.has(seatCode)) {
+            speak(`${seatCode} is already selected.`);
+            logResult(`ℹ️ "select current" → ${seatCode} already selected`);
+            resetTranscript();
+            return;
+        }
+
+        // Se ok → seleziona
+        if (selectSeat) {
+            selectSeat(); // usa focus corrente (coerente con i gesti)
+            speak('Seat selected.');
+            logResult(`🎟️ "select current" → ${seatCode} selected`);
+            resetTranscript();
+            return;
+        }
+
+        // Fallback onSeatSelect
+        onSeatSelect?.({ type: 'select', seats: [seatCode] });
+        speak(`Selected ${seatCode}.`);
+        logResult(`🎟️ "select current" → ${seatCode}`);
+        resetTranscript();
+    })
+    },
+    // deselect current (voice + gestures)
+    {
+    command: SEAT_DESELECT_CURRENT_CMD,
+    matchInterim: false,
+    callback: () => runOnce(() => {
+        if (modeRef.current !== MODE.SEAT) return;
+
+        if (!gestureMode) {
+            speak('This command works only with gestures enabled.');
+            logResult('⚠️ "deselect current" ignored: gestures disabled');
+            resetTranscript();
+            return;
+        }
+
+        const pos = seatPosRef?.current || { row: null, col: null };
+        const row = pos.row, col = pos.col;
+
+        if (row == null || col == null) {
+            speak('No seat is focused. Please use index finger to point to a seat.');
+            logResult('❌ "deselect current" → no focused seat');
+            resetTranscript();
+            return;
+        }
+
+        // on buttons there is no point on “deselect”
+        if (buttonRowRef && row === buttonRowRef.current) {
+            speak('Focus a seat to deselect it.');
+            logResult('⚠️ "deselect current" on button row');
+            resetTranscript();
+            return;
+        }
+
+        // --- validity checks on current seat ---
+        const code = currentLayout?.[row]?.[col];
+        const seatCode = code ? String(code).toUpperCase() : null;
+
+        if (!seatCode || !validSeatSet.has(seatCode)) {
+            speak('Cannot resolve the current seat to remove.');
+            logResult('❌ "deselect current" → invalid/missing seat code');
+            resetTranscript();
+            return;
+        }
+
+        // non selezionato → non rimuovere
+        const selectedSet = getSelectedSet();
+        if (!selectedSet.has(seatCode)) {
+            speak(`${seatCode} is not selected.`);
+            logResult(`ℹ️ "deselect current" → ${seatCode} not selected`);
+            resetTranscript();
+            return;
+        }
+
+        // OK → deseleziona
+        if (deselectSeat) {
+            deselectSeat(); // usa focus corrente
+            speak('Seat removed.');
+            logResult(`🗑️ "deselect current" → ${seatCode} removed`);
+            resetTranscript();
+            return;
+        }
+
+        // Fallback onSeatSelect
+        onSeatSelect?.({ type: 'deselect', seats: [seatCode] });
+        speak(`Removed ${seatCode}.`);
+        logResult(`🗑️ "deselect current" → ${seatCode}`);
+        resetTranscript();
+    })
     },
 
     // ---- SELECT SEATS ----

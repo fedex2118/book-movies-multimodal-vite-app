@@ -347,7 +347,14 @@ export default function App() {
     handleBookingSummaryConfirm,
     resolveLayout,
     readTimeEntry,
-    gestureMode
+    gestureMode,
+    timePosRef,
+    seatPosRef,
+    buttonRowRef,
+    backColIndex,
+    confirmColIndex,
+    selectSeat,
+    deselectSeat
   });
 
   // a handlerRef is used to contain a reference to components functions always updated
