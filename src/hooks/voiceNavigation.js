@@ -83,6 +83,12 @@ const GO_BACK_MOVIE_CMD = /^(?!.*\bcurrent\b)(?:go\s*back|back|return)\s*(?:to|t
 const GO_BACK_TIME_CMD  = /^(?!.*\bcurrent\b)(?:go\s*back|back|return)\s*(?:to|towards)?\s*(?:the\s*)?(?:time(?:\s*(?:selection|mode|list))?|times?)$/i;
 const GO_BACK_SEAT_CMD  = /^(?!.*\bcurrent\b)(?:go\s*back|back|return)\s*(?:to|towards)?\s*(?:the\s*)?(?:seat(?:\s*(?:selection|mode|list))?|seats?)$/i;
 
+
+// MODE.BOOKING_SUMMARY
+// "select current", "choose current", "select current option/button/selection"
+const BOOKING_SELECT_CURRENT_CMD =
+/^(?:select|choose|pick|set|confirm|book|go)\s+(?:the\s+)?(?:current(?:\s+(?:option|button|selection))?)$/i;
+
 // --- Helpers SEAT MODE ---
 const parseSeatList = (s) =>
   (s?.match(/[A-Za-z]{1,2}\s*\d{1,2}/g) || [])
@@ -118,7 +124,8 @@ export default function useVoiceNavigation({
     backColIndex,
     confirmColIndex,
     selectSeat,
-    deselectSeat
+    deselectSeat,
+    bookingSummarySelectedIndexRef
     }) {
     const [voiceMode, setVoiceMode] = useState(false);
     // indexCurrentMovie
@@ -881,6 +888,54 @@ export default function useVoiceNavigation({
     // COMMANDS FOR MODE.BOOKING_SUMMARY
     const bookingSummaryCommands = [
         // ---- GO BACK (DEFAULT SEAT MODE) ----
+        {
+        command: BOOKING_SELECT_CURRENT_CMD,
+        matchInterim: false,
+        callback: () => runOnce(() => {
+            if (modeRef.current !== MODE.BOOKING_SUMMARY) return;
+
+            if (!gestureMode) {
+                speak('This command works only with gestures enabled.');
+                logResult('⚠️ "select current" (booking summary) ignored: gestures disabled');
+                resetTranscript();
+                return;
+            }
+
+            // devi passare bookingSummarySelectedIndexRef come prop a questo hook
+            const idx = bookingSummarySelectedIndexRef?.current;
+
+            if (idx == null) {
+                speak('No button is focused. Please use index finger to focus Go Back or Confirm button.');
+                logResult('❌ "select current" (booking summary) → no focused option');
+                resetTranscript();
+                return;
+            }
+
+            if (idx === 0) {
+                // GO BACK → SEAT
+                setMode(MODE.SEAT);
+                setSeatPos({ row: null, col: null });
+                speak('Going back to seat selection.');
+                logResult('↩ "select current" (booking summary) on Back → ▶ seat selection');
+                resetTranscript();
+                return;
+            }
+
+            if (idx === 1) {
+                // CONFIRM BOOKING
+                speak('Booking confirmed.');
+                logResult('✅ "select current" (booking summary) on Confirm → ▶ demo ends');
+                handleBookingSummaryConfirm();
+                resetTranscript();
+                return;
+            }
+
+            // eventuali bottoni extra non gestiti
+            speak('This option is not supported by voice.');
+            logResult(`⚠️ "select current" (booking summary) on unsupported index ${idx}`);
+            resetTranscript();
+        })
+        },
         {
         command: GO_BACK_CMD,
         matchInterim: false,

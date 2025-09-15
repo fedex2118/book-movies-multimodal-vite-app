@@ -354,7 +354,8 @@ export default function App() {
     backColIndex,
     confirmColIndex,
     selectSeat,
-    deselectSeat
+    deselectSeat,
+    bookingSummarySelectedIndexRef
   });
 
   // a handlerRef is used to contain a reference to components functions always updated
