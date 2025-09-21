@@ -17,11 +17,13 @@ For the frontend is required React Vite with Javascript with the following depen
 - npm install @tensorflow/tfjs-backend-wasm
 
 because of "@tensorflow/tfjs-tflite": "^0.0.1-alpha.6" use legacy peer deps to install correctly speech recognition
+
 - npm install react-speech-recognition --legacy-peer-deps
 - npm install prop-types --legacy-peer-deps
 
 use the command "npm run dev" to run React
 
+# Backend
 For the back end see folder is preffered to have a conda environment setup
 See folder "movies-backend" and install the following dependencies:
 
@@ -33,6 +35,7 @@ See folder "movies-backend" and install the following dependencies:
 
 once on your conda envirnoment run with python main.py
 
+# Gesture recognition model
 The current gesture recongition model was made with the colab code that you can find in this repository.
 
 # React + Vite
