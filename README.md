@@ -1,6 +1,6 @@
 # Exploring Multimodal Interaction in a Movie Booking Web App: Gesture, Voice, and Traditional Input
 
-For the frontend is required React Vite with Javascript with the following dependencies:
+To be able to use this project locally it is required React Vite with Javascript with the following dependencies:
 
 - npm create vite@latest my-tfjs-app
 - node   v24.1.0
@@ -16,11 +16,11 @@ For the frontend is required React Vite with Javascript with the following depen
 - npm install @tensorflow/tfjs @tensorflow/tfjs-tflite   -> install this version "@tensorflow/tfjs-tflite": "^0.0.1-alpha.6"
 - npm install @tensorflow/tfjs-backend-wasm
 
-because of "@tensorflow/tfjs-tflite": "^0.0.1-alpha.6" use legacy peer deps to install correctly speech recognition
-
 - npm install react-speech-recognition --legacy-peer-deps
 - npm install prop-types --legacy-peer-deps
 
+
+because of "@tensorflow/tfjs-tflite": "^0.0.1-alpha.6" use legacy peer deps to install correctly speech recognition
 use the command "npm run dev" to run React
 
 # Backend
